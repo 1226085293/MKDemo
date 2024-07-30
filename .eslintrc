@@ -1,0 +1,175 @@
+/**
+ * "off" 或 0 - 关闭规则
+ * "warn" 或 1 - 开启规则，使用警告级别的错误：warn (不会导致程序退出),
+ * "error" 或 2 - 开启规则，使用错误级别的错误：error (当被触发的时候，程序会退出)
+ */
+ {
+	"parser": "@typescript-eslint/parser",
+	"parserOptions": {
+		"requireConfigFile": false,
+		"ecmaVersion": 6,
+		"sourceType": "module",
+		"project": "./tsconfig.json"
+	},
+	"plugins": ["@typescript-eslint", "eslint-plugin-prettier", "unused-imports"],
+	"extends": ["eslint:recommended", "plugin:@typescript-eslint/recommended", "plugin:prettier/recommended"],
+	"env": {
+		"browser": false,
+		"node": false
+	},
+	"globals": {
+		"self": true
+	},
+	"rules": {
+		// 禁止全局变量
+		"no-restricted-globals": ["error", "Node"],
+		// 禁止导入
+		"@typescript-eslint/no-restricted-imports": ["error",
+			{
+				"patterns": [
+					// 禁止使用 @framework 内的模块
+					{
+						"group": ["@framework"],
+						"message": "请使用 mk.xxx，而不是直接导入 @framework"
+					}
+				],
+				// 禁止使用 NodeJs 模块
+				"paths": ["assert","buffer","child_process","cluster","crypto","dgram","dns","domain","events","freelist","fs","http","https","module","net","os","path","punycode","querystring","readline","repl","smalloc","stream","string_decoder","sys","timers","tls","tracing","tty","url","util","vm","zlib"]
+			}
+		],
+		// 禁止返回类型 void 混合其他
+		"@typescript-eslint/no-invalid-void-type": "error",
+		// 一致的泛型构造函数
+		"@typescript-eslint/consistent-generic-constructors": "error",
+		// 使用 Record 代替 { [k: type]: type }
+		"@typescript-eslint/consistent-indexed-object-style": ["error", "record"],
+		// 不允许使用大类型
+		"@typescript-eslint/ban-types": "off",
+		// 不能在 promise 回调使用 async 函数
+		"no-async-promise-executor": "off",
+		// 不允许未使用的变量
+		"@typescript-eslint/no-unused-vars": "off",
+		// 自动删除未使用的导入
+		"unused-imports/no-unused-imports": "error",
+		// 注释首尾必须有空格
+		"spaced-comment": [
+			"error",
+			"always",
+			{
+				"line": {
+					"markers": ["/"],
+					"exceptions": ["-", "+"]
+				},
+				"block": {
+					"markers": ["!"],
+					"exceptions": ["*"],
+					"balanced": true
+				}
+			}
+		],
+		// 不允许自定义 namespace
+		"@typescript-eslint/no-namespace": "off",
+		// 不允许使用 any
+		"@typescript-eslint/no-explicit-any": "off",
+		// 禁止@ts-<directive>评论或要求指令后的描述
+		"@typescript-eslint/ban-ts-comment": "off",
+		// 使用 ?? 替代 !
+		"@typescript-eslint/no-non-null-assertion": "off",
+		// 强制使用简洁的可选链表达式
+		"@typescript-eslint/prefer-optional-chain": "error",
+		// 禁止使用联合或可选/剩余参数可以统一为一个的两个重载
+		"@typescript-eslint/unified-signatures": "error",
+		// 一致的类型断言
+		"@typescript-eslint/consistent-type-assertions": ["error", { "assertionStyle": "as", "objectLiteralTypeAssertions": "never" }],
+		// 必须存在返回类型
+		"@typescript-eslint/explicit-function-return-type": [
+			"error",
+			{
+				"allowExpressions": true,
+				"allowedNames": ["onLoad", "onEnable", "start", "update", "lateUpdate", "onDisable", "onDestroy"]
+			}
+		],
+		// 换行规则
+		"@typescript-eslint/padding-line-between-statements": [
+			"error",
+			// 多行表达式/多行块状语句/const/let/var 语句后换行
+			{ "blankLine": "always", "prev": ["multiline-expression", "multiline-block-like", "const", "let", "var"], "next": "*" },
+			// return 语句前换行
+			{ "blankLine": "always", "prev": "*", "next": "return" },
+			// 忽略单行 const/let/var 换行
+			{
+				"blankLine": "never",
+				"prev": ["singleline-const", "singleline-let", "singleline-var"],
+				"next": ["singleline-const", "singleline-let", "singleline-var"]
+			}
+		],
+		// 命名规则
+		"@typescript-eslint/naming-convention": [
+			"error",
+			// 蛇形命名规则
+			{
+				"selector": "variableLike",
+				"format": ["snake_case"],
+				"trailingUnderscore": "allowSingleOrDouble"
+			},
+			// private 命名规则
+			{
+				"selector": "memberLike",
+				"modifiers": ["private"],
+				"format": ["snake_case"],
+				"leadingUnderscore": "require"
+			},
+			// protected 命名规则
+			{
+				"selector": "memberLike",
+				"modifiers": ["protected"],
+				"format": ["snake_case"],
+				"filter": {
+					"match": true,
+					"regex": "[^(onLoad)(onEnable)(onDisable)(onDestroy)(targetOff)(displayName)(update)]"
+				},
+				"leadingUnderscore": "require"
+			},
+			// public 命名规则
+			{
+				"selector": "memberLike",
+				"modifiers": ["public"],
+				"format": ["snake_case"],
+				"filter": {
+					"match": true,
+					"regex": "[^(onLoad)(onEnable)(onDisable)(onDestroy)(targetOff)(displayName)]"
+				},
+				"leadingUnderscore": "allowSingleOrDouble",
+				"trailingUnderscore": "allowSingleOrDouble"
+			}
+		],
+		// 成员排序
+		"@typescript-eslint/member-ordering": [
+			"error",
+			{
+				"default": [
+					// Index signature
+					"signature",
+
+					// Fields
+					"public-static-field",
+					"protected-static-field",
+					"private-static-field",
+					"static-field",
+
+					"public-abstract-field",
+					"public-instance-field",
+
+					"protected-abstract-field",
+					"protected-instance-field",
+
+					"private-instance-field",
+
+					"public-field",
+					"protected-field",
+					"private-field"
+				]
+			}
+		]
+	}
+}
