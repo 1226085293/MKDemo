@@ -617,11 +617,6 @@ export namespace mk_bundle_ {
 				throw "中断";
 			}
 
-			if (this.valid_b) {
-				mk_log.error("bundle 已经加载");
-				throw "中断";
-			}
-
 			this.valid_b = true;
 		}
 

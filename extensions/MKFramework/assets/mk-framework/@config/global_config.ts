@@ -34,7 +34,7 @@ namespace global_config {
 			main: any;
 			config: any;
 			framework: any;
-			hot_update: any;
+			stars: any;
 		}
 
 		/** bundle 键 */
