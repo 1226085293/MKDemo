@@ -10,13 +10,14 @@ export class main_start extends mk.static_view_base {
 	data = new (class {
 		list_as: (typeof main_start_item.prototype.init_data)[] = [];
 	})();
+
+	/* ------------------------------- segmentation ------------------------------- */
 	// 初始化视图
 	// create(): void {}
 	// 有数据初始化
 	// init(init_?: typeof this.init_data): void {}
 	// 无数据初始化
 	async open(): Promise<void> {
-		console.log("open");
 		// 数据到视图
 		await tool_monitor_data_method.array.默认.on(
 			this.data,

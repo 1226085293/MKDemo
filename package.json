@@ -1,20 +1,16 @@
 {
 	"name": "MKDemo",
 	"uuid": "06c28f4b-8e42-430d-b149-73095eca5e76",
-	"creator": {
-		"version": "3.8.2"
-	},
-	"mk-framework": {
-		"version_s": "v1.0.7"
-	},
+	"creator": { "version": "3.8.2" },
+	"mk-framework": { "version_s": "v1.0.8" },
 	"devDependencies": {
-	  "@typescript-eslint/eslint-plugin": "^5.34.0",
-	  "@typescript-eslint/parser": "^5.34.0",
-	  "eslint": "^8.22.0",
-	  "eslint-config-prettier": "^8.5.0",
-	  "eslint-plugin-prettier": "^4.2.1",
-	  "eslint-plugin-unused-imports": "^2.0.0",
-	  "prettier": "^2.7.1",
-	  "typescript": "^4.7.4"
+		"@typescript-eslint/eslint-plugin": "^5.34.0",
+		"@typescript-eslint/parser": "^5.34.0",
+		"eslint": "^8.22.0",
+		"eslint-config-prettier": "^8.5.0",
+		"eslint-plugin-prettier": "^4.2.1",
+		"eslint-plugin-unused-imports": "^2.0.0",
+		"prettier": "^2.7.1",
+		"typescript": "^4.7.4"
 	}
 }

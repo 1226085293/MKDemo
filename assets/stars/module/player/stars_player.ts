@@ -1,7 +1,6 @@
 import * as cc from "cc";
 import { _decorator } from "cc";
 import mk from "mk";
-import stars from "../../bundle/stars";
 const { ccclass, property } = _decorator;
 
 @ccclass("stars_player")
@@ -29,7 +28,7 @@ export class stars_player extends mk.view_base {
 		// 下落
 		const jump_down = cc.tween(this.data).by(this.data.jump_duration_n, { node_y_n: -this.data.jump_height_n }, { easing: "sineIn" });
 		/** 音频 */
-		const audio = await mk.audio.add("db://assets/stars/module/player/audio/jump.mp3", stars);
+		const audio = await mk.audio.add("db://assets/stars/module/player/audio/jump.mp3", this);
 
 		// 不断重复
 		cc.tween(this.data)

@@ -248,14 +248,8 @@ declare namespace mk {
 			manage?: bundle_manage_base;
 		}
 		/** load 配置 */
-		export class load_config {
+		export class load_config extends bundle_info {
 			constructor(init_: load_config);
-			/**
-			 * bundle名
-			 * @remarks
-			 * getBundle 时使用
-			 */
-			bundle_s: string;
 			/** 加载回调 */
 			progress_callback_f?: (curr_n: number, total_n: number) => void;
 		}
@@ -294,12 +288,12 @@ declare namespace mk {
 			constructor();
 			/** bundle 名 */
 			abstract name_s: string;
-			/** 事件对象 */
-			abstract event: event_target<any>;
 			/** 管理器有效状态 */
 			valid_b: boolean;
 			/** 节点池表 */
 			node_pool_tab: Record<string, cc_2.NodePool>;
+			/** 事件对象 */
+			event?: event_target<any>;
 			/** 网络对象 */
 			network?: mk_network_base;
 			/** 数据获取器 */
@@ -1173,9 +1167,13 @@ declare namespace mk {
 		 * @param config_ 切换配置
 		 * @returns
 		 */
-		load_scene(scene_s_: string, config_?: Partial<bundle_.switch_scene_config>): Promise<boolean>;
-		/** 重新加载 bundle */
-		reload(bundle_: bundle_.bundle_info & Required<Pick<bundle_.bundle_info, "origin_s">>): Promise<cc_2.AssetManager.Bundle | null>;
+		load_scene(scene_s_: string, config_: Partial<bundle_.switch_scene_config>): Promise<boolean>;
+		/**
+		 * 重新加载 bundle
+		 * @param bundle_ bundle 信息
+		 * @returns
+		 */
+		reload(bundle_: Required<bundle_.bundle_info>): Promise<cc_2.AssetManager.Bundle | null>;
 		private _set_bundle_s;
 		private _set_scene_s;
 	}

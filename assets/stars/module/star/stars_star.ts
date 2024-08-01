@@ -1,7 +1,7 @@
 import * as cc from "cc";
 import { _decorator } from "cc";
 import mk from "mk";
-import stars from "../../bundle/stars";
+import stars_bundle from "../../bundle/stars_bundle";
 const { ccclass, property } = _decorator;
 
 @ccclass("stars_star")
@@ -16,7 +16,7 @@ export class stars_star extends mk.view_base {
 	// init(init_?: typeof this.init_data): void {}
 	// 无数据初始化
 	async open(): Promise<void> {
-		this.data.audio = await mk.audio.add("db://assets/stars/module/star/audio/score.mp3", stars);
+		this.data.audio = await mk.audio.add("db://assets/stars/module/star/audio/score.mp3", this);
 		// 注册单个碰撞体的回调函数
 		const collider = this.getComponent(cc.Collider2D);
 
@@ -26,7 +26,7 @@ export class stars_star extends mk.view_base {
 	}
 	// 模块关闭
 	close(): void {
-		stars.event.emit(stars.event.key.generate_star);
+		stars_bundle.event.emit(stars_bundle.event.key.generate_star);
 	}
 
 	private _on_begin_contact(self_: cc.Collider2D, other_: cc.Collider2D, contact: cc.IPhysics2DContact | null): void {

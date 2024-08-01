@@ -1,5 +1,5 @@
 import * as cc from "cc";
-import { DEBUG } from "cc/env";
+import { DEBUG, PREVIEW } from "cc/env";
 
 /**
  * 全局配置
@@ -182,10 +182,8 @@ namespace global_config {
 			cache_row_n = 100;
 			/** 报错日志上传地址 */
 			error_upload_addr_s = "";
-			/** 输出定位(使用 console 接口) */
-			output_position_b = true;
 			/** 日志等级 */
-			level_n = level.debug_up;
+			level_n = PREVIEW ? level.debug_up : DEBUG ? level.log_up : level.error;
 			/** 打印对象类型 */
 			log_object_type = log_object_type.console;
 			/** 错误处理函数 */
