@@ -1,7 +1,0 @@
-{
-	"imports": {
-		"mk": "./extensions/MKFramework/assets/MKFramework/Framework/MKInit.ts",
-		"GlobalConfig": "./extensions/MKFramework/assets/MKFramework/Config/GlobalConfig.ts",
-		"globalEvent": "./extensions/MKFramework/assets/MKFramework/Config/GlobalEvent.ts"
-	}
-}
