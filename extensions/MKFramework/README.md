@@ -1,39 +1,22 @@
 # MKFramework
 
-Welcome to MKFramework, which is the game code framework of the game engine CocosCreator3.x. It includes essential functional modules for developers such as audio, multi-language, UI, novice guide, network, resources, MVVM, etc., helping you develop quickly without being affected by other factors.
-For the documentation, you can temporarily view it at https://1226085293.github.io/mk-framework, and it will be moved to the repository wiki page later
+## Framework Documentation
 
-# # Use the framework
+https://mkframework.muzzik.cc/docs/introduce
 
-## Step 1: Initialization
+## Installing/Updating the Framework
 
-First close the editor, open the plugin directory `Project root directory\extensions\MKFramework` and execute the command in the current directory
+https://mkframework.muzzik.cc/docs/getting-started/install
 
-```bash
-npm install
-```
+## Source Code Location
 
-Wait for the execution to succeed and open the editor
+After installing the framework, the source code is located in: Project root directory/extensions/MKFramework/assets/MKFramework
 
-## Step 2: Install the framework
+## Framework Repository
 
-Top menu: `Extensions/mk-framework/Install framework`
+- GitHub: https://github.com/1226085293/MKFramework
+- Git: https://gitee.com/muzzik/MKFramework
 
-Wait for the installation to succeed and restart the editor to use it. If you have any questions, please raise them in the repository
+## Contact the Author
 
-# # Update the framework
-
-Top menu: `Extensions/mk-framework/Install framework`
-
-# # Customize the framework
-
-The framework supports you to customize the framework content. After modifying the framework code, you can use the `Extensions/mk-framework/Build d.ts` menu to update the content of the framework declaration file (mk.d.ts)
-
-# # Framework repository
-
-github: https://github.com/1226085293/MKFramework
-gitee: https://gitee.com/muzzik/MKFramework
-
-# # Contact the author
-
-Top menu: `Extensions/mk-framework/Help`
+Top Menu: Extensions/MKFramework/Help

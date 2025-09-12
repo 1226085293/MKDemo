@@ -10,71 +10,71 @@ const cjson_1 = __importDefault(require("cjson"));
 const prettier_1 = __importDefault(require("prettier"));
 const axios_1 = __importDefault(require("axios"));
 const fast_glob_1 = __importDefault(require("fast-glob"));
-// 修改模块让其正常加载
-[path_1.default.join(__dirname, "../node_modules/isomorphic-git/index"), path_1.default.join(__dirname, "../node_modules/isomorphic-git/http/node/index")].forEach((v_s) => {
-    if (fs_extra_1.default.existsSync(v_s + ".js") && fs_extra_1.default.existsSync(v_s + ".cjs")) {
-        fs_extra_1.default.renameSync(v_s + ".js", v_s + ".temp");
-        fs_extra_1.default.renameSync(v_s + ".cjs", v_s + ".js");
-    }
-});
 const isomorphic_git_1 = __importDefault(require("isomorphic-git"));
 const node_1 = __importDefault(require("isomorphic-git/http/node"));
-async function default_1() {
+async function install(versionStr_) {
     /** 用户名 */
-    const owner_s = "muzzik";
+    const owner = "muzzik";
     /** 仓库路径 */
-    const repo_s = "MKFramework";
+    const repo = "MKFramework";
     /** 临时路径 */
-    const temp_path_s = Editor.Project.tmpDir;
+    const tempPath = Editor.Project.tmpDir;
     /** 插件路径 */
-    const plugin_path_s = path_1.default.join(__dirname, "../").replace(/\\/g, "/");
+    const pluginPath = path_1.default.join(__dirname, "../").replace(/\\/g, "/");
     /** 插件项目路径 */
-    const plugin_project_path_s = plugin_path_s.slice(plugin_path_s.indexOf("/extensions/")).slice(1);
+    const pluginProjectPath = pluginPath.slice(pluginPath.indexOf("/extensions/")).slice(1);
     /** 远程路径 */
-    const remote_url_s = `https://gitee.com/${owner_s}/${repo_s}.git`;
+    const remoteUrl = `https://gitee.com/${owner}/${repo}.git`;
     /** 下载路径 */
-    const download_path_s = path_1.default.join(temp_path_s, "mk_framework");
+    const downloadPath = path_1.default.join(tempPath, "MKFramework");
     /** 框架代码路径 */
-    const framework_path_s = "assets/mk-framework";
+    const frameworkPath = "assets/MKFramework";
     /** 安装路径 */
-    const install_path_s = path_1.default.join(__dirname, "..", framework_path_s);
+    const installPath = path_1.default.join(__dirname, "..", frameworkPath);
     /** ts 配置 */
-    const project_tsconfig = cjson_1.default.load(path_1.default.join(Editor.Project.path, "tsconfig.json"));
+    const projectTsconfig = cjson_1.default.load(path_1.default.join(Editor.Project.path, "tsconfig.json"));
     /** 包配置 */
-    const project_package = cjson_1.default.load(path_1.default.join(Editor.Project.path, "package.json"));
+    const projectPackage = cjson_1.default.load(path_1.default.join(Editor.Project.path, "package.json"));
     /** 安装版本 */
-    let version_s;
+    let version;
+    /** 最新的稳定版本 */
+    let latestStableVersionStr;
+    /** 下个版本 */
+    let nextVersionStr;
     await Promise.resolve()
         .then(async () => {
         console.log(Editor.I18n.t("mk-framework.安全检查"));
+        let pathToCheck = path_1.default.join(__dirname, "..", frameworkPath);
         // 覆盖安装确认
-        if (fs_extra_1.default.existsSync(path_1.default.join(__dirname, "..", framework_path_s, "@framework"))) {
+        if (fs_extra_1.default.existsSync(pathToCheck) && fs_extra_1.default.readdirSync(pathToCheck).length !== 0) {
             const result = await Editor.Dialog.info(Editor.I18n.t("mk-framework.确认安装"), {
                 buttons: [Editor.I18n.t("mk-framework.确认"), Editor.I18n.t("mk-framework.取消")],
             });
             if (result.response !== 0) {
                 return Promise.reject("取消安装");
             }
-            fs_extra_1.default.emptyDirSync(install_path_s);
+            fs_extra_1.default.emptyDirSync(installPath);
         }
     })
         .then(async () => {
         console.log(Editor.I18n.t("mk-framework.获取版本"));
-        const remote_url_s = `https://gitee.com/${owner_s}/${repo_s}/tags`;
-        const html_s = (await axios_1.default.get(remote_url_s)).data;
-        const tag_ss = html_s.match(/(?<=(data-ref="))([^"]*)(?=")/g);
-        tag_ss.sort((va_s, vb_s) => {
-            const va_version_n = va_s[0] === "v" ? -Number(va_s.slice(1).replace(/\./g, "")) : 999;
-            const vb_version_n = vb_s[0] === "v" ? -Number(vb_s.slice(1).replace(/\./g, "")) : 999;
-            return va_version_n - vb_version_n;
+        const tagsUrl = `https://gitee.com/${owner}/${repo}/tags`;
+        const html = (await axios_1.default.get(tagsUrl)).data;
+        const tags = html.match(/(?<=(data-ref="))([^"]*)(?=")/g);
+        tags.sort((a, b) => {
+            const aVersion = a[0] === "v" ? -Number(a.slice(1).replace(/\./g, "")) : 999;
+            const bVersion = b[0] === "v" ? -Number(b.slice(1).replace(/\./g, "")) : 999;
+            return aVersion - bVersion;
         });
-        version_s = tag_ss[0];
+        latestStableVersionStr = tags[0];
+        nextVersionStr = "v" + (Number(latestStableVersionStr.match(/\d+/g).join("")) + 1).toString().replace(/(\d)(?=\d)/g, "$1.");
+        version = versionStr_ || tags[0];
     })
         .then(async () => {
-        console.log(Editor.I18n.t("mk-framework.下载框架") + `(${version_s})`);
+        console.log(Editor.I18n.t("mk-framework.下载框架") + `(${version})`);
         try {
-            fs_extra_1.default.removeSync(download_path_s);
-            fs_extra_1.default.emptyDirSync(download_path_s);
+            fs_extra_1.default.removeSync(downloadPath);
+            fs_extra_1.default.emptyDirSync(downloadPath);
         }
         catch (error) {
             return error;
@@ -82,45 +82,28 @@ async function default_1() {
         await isomorphic_git_1.default.clone({
             fs: fs_extra_1.default,
             http: node_1.default,
-            dir: download_path_s,
-            url: remote_url_s,
+            dir: downloadPath,
+            url: remoteUrl,
             depth: 1,
-            ref: version_s,
+            ref: version,
         });
-    })
-        // 版本适配
-        .then(() => {
-        var _a;
-        console.log(Editor.I18n.t("mk-framework.版本适配"));
-        // 3.8.0 及以上删除 userData.bundleConfigID
-        if (((_a = project_package.creator) === null || _a === void 0 ? void 0 : _a.version) && Number(project_package.creator.version.replace(/\./g, "")) >= 380) {
-            const file_ss = [
-                `${plugin_project_path_s}/${framework_path_s}/@config.meta`,
-                `${plugin_project_path_s}/${framework_path_s}/@framework.meta`,
-            ];
-            file_ss.forEach((v_s) => {
-                const data = fs_extra_1.default.readJSONSync(path_1.default.join(download_path_s, v_s));
-                delete data.userData.bundleConfigID;
-                fs_extra_1.default.writeJSONSync(path_1.default.join(download_path_s, v_s), data);
-            });
-        }
     })
         // 注入框架
         .then(async () => {
         console.log(Editor.I18n.t("mk-framework.注入框架"));
         // 拷贝框架文件
         {
-            fs_extra_1.default.copySync(path_1.default.join(download_path_s, plugin_project_path_s, `assets`), path_1.default.join(install_path_s, ".."));
-            Editor.Message.send("asset-db", "refresh-asset", "db://mk-framework");
+            fs_extra_1.default.copySync(path_1.default.join(downloadPath, pluginProjectPath, `assets`), path_1.default.join(installPath, ".."));
+            Editor.Message.send("asset-db", "refresh-asset", "db://MKFramework");
         }
         // 添加脚本模板
         {
             /** 脚本模板文件路径 */
-            const script_template_path = path_1.default.join(download_path_s, ".creator/asset-template/typescript");
-            if (fs_extra_1.default.pathExistsSync(script_template_path)) {
-                const file_ss = await (0, fast_glob_1.default)(script_template_path.replace(/\\/g, "/") + "/*.ts");
-                file_ss.forEach((v_s) => {
-                    fs_extra_1.default.copySync(v_s, path_1.default.join(Editor.Project.path, ".creator/asset-template/typescript", path_1.default.basename(v_s)));
+            const scriptTemplatePath = path_1.default.join(downloadPath, ".creator/asset-template/typescript");
+            if (fs_extra_1.default.pathExistsSync(scriptTemplatePath)) {
+                const files = await (0, fast_glob_1.default)(scriptTemplatePath.replace(/\\/g, "/") + "/*.ts");
+                files.forEach((f) => {
+                    fs_extra_1.default.copySync(f, path_1.default.join(Editor.Project.path, ".creator/asset-template/typescript", path_1.default.basename(f)));
                 });
             }
         }
@@ -130,42 +113,42 @@ async function default_1() {
         var _a;
         console.log(Editor.I18n.t("mk-framework.注入声明文件"));
         /** 框架声明文件 */
-        const framework_tsconfig = cjson_1.default.load(path_1.default.join(download_path_s, "tsconfig.json"));
+        const frameworkTsconfig = cjson_1.default.load(path_1.default.join(downloadPath, "tsconfig.json"));
         /** 声明文件路径 */
-        const declare_path_s = path_1.default.join(plugin_project_path_s, "/@types/mk-framework/");
+        const declarePath = path_1.default.join(pluginProjectPath, "/@types/MKFramework/");
         /** 修改 tsconfig */
-        let modify_tsconfig_b = false;
+        let shouldModifyTsconfig = false;
         // 拷贝 d.ts
-        fs_extra_1.default.copySync(path_1.default.join(download_path_s, declare_path_s), path_1.default.join(Editor.Project.path, declare_path_s));
+        fs_extra_1.default.copySync(path_1.default.join(downloadPath, declarePath), path_1.default.join(Editor.Project.path, declarePath));
         // 添加框架类型声明文件
-        if ((_a = framework_tsconfig.types) === null || _a === void 0 ? void 0 : _a.length) {
-            modify_tsconfig_b = true;
-            if (!project_tsconfig.types) {
-                project_tsconfig.types = [...framework_tsconfig.types];
+        if ((_a = frameworkTsconfig.types) === null || _a === void 0 ? void 0 : _a.length) {
+            shouldModifyTsconfig = true;
+            if (!projectTsconfig.types) {
+                projectTsconfig.types = [...frameworkTsconfig.types];
             }
             else {
-                for (const v_s of framework_tsconfig.types) {
-                    if (!project_tsconfig.types.includes(v_s)) {
-                        project_tsconfig.types.push(v_s);
+                for (const t of frameworkTsconfig.types) {
+                    if (!projectTsconfig.types.includes(t)) {
+                        projectTsconfig.types.push(t);
                     }
                 }
             }
         }
         // 添加 tsconfig 路径配置
-        if (framework_tsconfig.compilerOptions.paths) {
-            modify_tsconfig_b = true;
-            if (!project_tsconfig.compilerOptions) {
-                project_tsconfig.compilerOptions = {};
+        if (frameworkTsconfig.compilerOptions.paths) {
+            shouldModifyTsconfig = true;
+            if (!projectTsconfig.compilerOptions) {
+                projectTsconfig.compilerOptions = {};
             }
-            if (!project_tsconfig.compilerOptions.paths) {
-                project_tsconfig.compilerOptions.paths = {};
+            if (!projectTsconfig.compilerOptions.paths) {
+                projectTsconfig.compilerOptions.paths = {};
             }
-            for (const k_s in framework_tsconfig.compilerOptions.paths) {
-                project_tsconfig.compilerOptions.paths[k_s] = framework_tsconfig.compilerOptions.paths[k_s];
+            for (const k in frameworkTsconfig.compilerOptions.paths) {
+                projectTsconfig.compilerOptions.paths[k] = frameworkTsconfig.compilerOptions.paths[k];
             }
         }
-        if (modify_tsconfig_b) {
-            fs_extra_1.default.writeFileSync(path_1.default.join(Editor.Project.path, "tsconfig.json"), await prettier_1.default.format(JSON.stringify(project_tsconfig), {
+        if (shouldModifyTsconfig) {
+            fs_extra_1.default.writeFileSync(path_1.default.join(Editor.Project.path, "tsconfig.json"), await prettier_1.default.format(JSON.stringify(projectTsconfig), {
                 filepath: "*.json",
                 tabWidth: 4,
                 useTabs: true,
@@ -174,24 +157,25 @@ async function default_1() {
     })
         // 添加导入映射
         .then(async () => {
-        var _a;
+        var _a, _b, _c;
         console.log(Editor.I18n.t("mk-framework.添加导入映射"));
-        const setting_path_s = path_1.default.join(Editor.Project.path, "settings/v2/packages/project.json");
-        const setting_config_tab = !fs_extra_1.default.existsSync(setting_path_s) ? {} : fs_extra_1.default.readJSONSync(setting_path_s);
-        const mk_import_map_tab = fs_extra_1.default.readJSONSync(path_1.default.join(download_path_s, "import-map.json"));
+        const settingPath = path_1.default.join(Editor.Project.path, "settings/v2/packages/project.json");
+        const settingConfig = !fs_extra_1.default.existsSync(settingPath) ? {} : fs_extra_1.default.readJSONSync(settingPath);
+        const importMap = fs_extra_1.default.readJSONSync(path_1.default.join(downloadPath, "import-map.json"));
         // 防止 script 不存在
-        if (!setting_config_tab.script) {
-            setting_config_tab.script = {};
+        if (!settingConfig.script) {
+            settingConfig.script = {};
         }
         /** 导入映射路径 */
-        let import_map_path_s = ((_a = setting_config_tab.script.importMap) !== null && _a !== void 0 ? _a : "").replace("project:/", Editor.Project.path);
+        let importMapPath = ((_a = settingConfig.script.importMap) !== null && _a !== void 0 ? _a : "").replace("project:/", Editor.Project.path);
         // 已存在导入映射
-        if (fs_extra_1.default.existsSync(import_map_path_s) && fs_extra_1.default.statSync(import_map_path_s).isFile()) {
-            const import_map_tab = fs_extra_1.default.readJSONSync(import_map_path_s);
+        if (fs_extra_1.default.existsSync(importMapPath) && fs_extra_1.default.statSync(importMapPath).isFile()) {
+            const importMapContent = (_b = fs_extra_1.default.readJSONSync(importMapPath)) !== null && _b !== void 0 ? _b : {};
             // 更新导入映射
-            Object.assign(import_map_tab.imports, mk_import_map_tab.imports);
+            importMapContent.imports = (_c = importMapContent.imports) !== null && _c !== void 0 ? _c : {};
+            Object.assign(importMapContent.imports, importMap.imports);
             // 写入导入映射
-            fs_extra_1.default.writeFileSync(import_map_path_s, await prettier_1.default.format(JSON.stringify(import_map_tab), {
+            fs_extra_1.default.writeFileSync(importMapPath, await prettier_1.default.format(JSON.stringify(importMapContent), {
                 filepath: "*.json",
                 tabWidth: 4,
                 useTabs: true,
@@ -199,18 +183,18 @@ async function default_1() {
         }
         // 不存在新建导入映射
         else {
-            import_map_path_s = path_1.default.join(Editor.Project.path, "import-map.json");
+            importMapPath = path_1.default.join(Editor.Project.path, "import-map.json");
             // 写入导入映射
-            fs_extra_1.default.writeFileSync(import_map_path_s, await prettier_1.default.format(JSON.stringify(mk_import_map_tab), {
+            fs_extra_1.default.writeFileSync(importMapPath, await prettier_1.default.format(JSON.stringify(importMap), {
                 filepath: "*.json",
                 tabWidth: 4,
                 useTabs: true,
             }));
             // 更新项目设置
-            setting_config_tab.script.importMap = import_map_path_s.replace(Editor.Project.path + "\\", "project://").replace(/\\/g, "/");
+            settingConfig.script.importMap = importMapPath.replace(Editor.Project.path + "\\", "project://").replace(/\\/g, "/");
             // 写入项目设置
-            fs_extra_1.default.ensureDirSync(path_1.default.dirname(setting_path_s));
-            fs_extra_1.default.writeFileSync(setting_path_s, await prettier_1.default.format(JSON.stringify(setting_config_tab), {
+            fs_extra_1.default.ensureDirSync(path_1.default.dirname(settingPath));
+            fs_extra_1.default.writeFileSync(settingPath, await prettier_1.default.format(JSON.stringify(settingConfig), {
                 filepath: "*.json",
                 tabWidth: 4,
                 useTabs: true,
@@ -220,18 +204,18 @@ async function default_1() {
         // 屏蔽 vscode 框架文件提示
         .then(async () => {
         console.log(Editor.I18n.t("mk-framework.屏蔽vscode框架文件提示"));
-        const old_settings_json = cjson_1.default.load(path_1.default.join(download_path_s, ".vscode/settings.json"));
-        const vscode_setting_path_s = path_1.default.join(Editor.Project.path, ".vscode/settings.json");
-        let settings_json = {};
+        const oldVscodeSettings = cjson_1.default.load(path_1.default.join(downloadPath, ".vscode/settings.json"));
+        const vscodeSettingPath = path_1.default.join(Editor.Project.path, ".vscode/settings.json");
+        let vscodeSettings = {};
         // 保证项目 vscode settings 目录存在
         fs_extra_1.default.ensureDirSync(path_1.default.join(Editor.Project.path, ".vscode"));
         // 读取 settings 文件
-        if (fs_extra_1.default.existsSync(vscode_setting_path_s)) {
-            settings_json = cjson_1.default.load(vscode_setting_path_s);
+        if (fs_extra_1.default.existsSync(vscodeSettingPath)) {
+            vscodeSettings = cjson_1.default.load(vscodeSettingPath);
         }
-        settings_json["typescript.preferences.autoImportFileExcludePatterns"] =
-            old_settings_json["typescript.preferences.autoImportFileExcludePatterns"];
-        fs_extra_1.default.writeFileSync(vscode_setting_path_s, await prettier_1.default.format(JSON.stringify(settings_json), {
+        vscodeSettings["typescript.preferences.autoImportFileExcludePatterns"] =
+            oldVscodeSettings["typescript.preferences.autoImportFileExcludePatterns"];
+        fs_extra_1.default.writeFileSync(vscodeSettingPath, await prettier_1.default.format(JSON.stringify(vscodeSettings), {
             filepath: "*.json",
             tabWidth: 4,
             useTabs: true,
@@ -240,11 +224,11 @@ async function default_1() {
         // 更新框架版本信息
         .then(async () => {
         console.log(Editor.I18n.t("mk-framework.更新框架版本信息"));
-        if (!project_package["mk-framework"]) {
-            project_package["mk-framework"] = {};
+        if (!projectPackage["MKFramework"]) {
+            projectPackage["MKFramework"] = {};
         }
-        project_package["mk-framework"].version_s = version_s;
-        fs_extra_1.default.writeFileSync(path_1.default.join(Editor.Project.path, "package.json"), await prettier_1.default.format(JSON.stringify(project_package), {
+        projectPackage["MKFramework"].version = versionStr_ ? `${nextVersionStr}(开发版)` : version;
+        fs_extra_1.default.writeFileSync(path_1.default.join(Editor.Project.path, "package.json"), await prettier_1.default.format(JSON.stringify(projectPackage), {
             filepath: "*.json",
             tabWidth: 4,
             useTabs: true,
@@ -253,7 +237,7 @@ async function default_1() {
         // 清理临时文件
         .then(() => {
         console.log(Editor.I18n.t("mk-framework.清理临时文件"));
-        fs_extra_1.default.remove(download_path_s);
+        fs_extra_1.default.remove(downloadPath);
     })
         // 安装成功
         .then(() => {
@@ -267,4 +251,4 @@ async function default_1() {
         console.error(error);
     });
 }
-exports.default = default_1;
+exports.default = install;

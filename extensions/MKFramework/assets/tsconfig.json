@@ -1,7 +1,5 @@
 {
-	/* Base configuration. Do not edit this field. */
-	"include": ["../../../temp/declarations/", "../@types/mk-framework/", "./"],
-	/* Add your custom configuration here. */
+	"include": ["../../../temp/declarations/", "../@types/MKFramework", "./"],
 	"compilerOptions": {
 		"target": "es6",
 		"lib": ["ES2015", "ES2017", "ES2020", "ES2022", "DOM"],
@@ -13,10 +11,11 @@
 		"esModuleInterop": true,
 		"experimentalDecorators": true,
 		"allowSyntheticDefaultImports": true,
-		"isolatedModules": true,
+		"isolatedModules": false,
 		"rootDir": "./",
 		"outDir": "../temp/",
 		"skipLibCheck": true,
-		"declaration": true
+		"declaration": true,
+		"types": ["@cocos/creator-types/editor"]
 	}
 }

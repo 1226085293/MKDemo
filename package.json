@@ -1,8 +1,8 @@
 {
 	"name": "MKDemo",
 	"uuid": "06c28f4b-8e42-430d-b149-73095eca5e76",
-	"creator": { "version": "3.8.2" },
-	"mk-framework": { "version_s": "v1.0.8" },
+	"creator": { "version": "3.8.6" },
+	"mk-framework": { "versionStr": "v1.0.8" },
 	"devDependencies": {
 		"@typescript-eslint/eslint-plugin": "^5.34.0",
 		"@typescript-eslint/parser": "^5.34.0",
@@ -12,5 +12,6 @@
 		"eslint-plugin-unused-imports": "^2.0.0",
 		"prettier": "^2.7.1",
 		"typescript": "^4.7.4"
-	}
+	},
+	"MKFramework": { "version": "v1.1.3(开发版)" }
 }

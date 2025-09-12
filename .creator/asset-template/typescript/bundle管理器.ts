@@ -1,10 +1,9 @@
 import { _decorator } from "cc";
 import mk from "mk";
-import cc from "cc";
 const { ccclass, property } = _decorator;
 
-class <%UnderscoreCaseClassName%> extends mk.bundle_.bundle_manage_base {
+class <%CamelCaseClassName%> extends mk.Bundle_.BundleManageBase {
 	name_s = "这里填写 bundle 名";
 }
 
-export default new <%UnderscoreCaseClassName%>();
+export default new <%CamelCaseClassName%>();
