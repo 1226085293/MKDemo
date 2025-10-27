@@ -6,19 +6,26 @@ import MKStatusTask from "../Task/MKStatusTask";
 /** @weak */
 import type { MKDataSharer_ } from "../MKDataSharer";
 import mkToolFunc from "../@Private/Tool/MKToolFunc";
-import MKRelease, { MKRelease_ } from "../MKRelease";
+import MKRelease, { MKRelease_ } from "./MKRelease";
 import { game, Game, director, Director, Scene, AssetManager, assetManager, js, Component, NodePool } from "cc";
 
 namespace _MKBundle {
 	export interface EventProtocol {
-		/** bundle 切换前事件 */
+		/** bundle 准备切换事件（准备从此 Bundle 场景切换到其他 Bundle 场景，先于 loadBundle 触发） */
+		bundleReadySwitch(event: {
+			/** 当前 bundle  */
+			currBundleStr: string;
+			/** 下个 bundle  */
+			nextBundleStr: string;
+		});
+		/** bundle 切换前事件（从此 Bundle 场景切换到其他 Bundle 场景前） */
 		beforeBundleSwitch(event: {
 			/** 当前 bundle  */
 			currBundleStr: string;
 			/** 下个 bundle  */
 			nextBundleStr: string;
 		}): void;
-		/** bundle 切换后事件 */
+		/** bundle 切换后事件（从此 Bundle 场景切换到其他 Bundle 场景后） */
 		afterBundleSwitch(event: {
 			/** 当前 bundle  */
 			currBundleStr: string;
@@ -61,7 +68,7 @@ export class MKBundle extends MKInstanceBase {
 	constructor() {
 		super();
 
-		if (EDITOR) {
+		if (EDITOR && !window["cc"].GAME_VIEW) {
 			this._setBundleStr("main");
 			this._engineInitTask.finish(true);
 			this._initTask.finish(true);
@@ -78,18 +85,18 @@ export class MKBundle extends MKInstanceBase {
 		director.once(
 			Director.EVENT_BEFORE_SCENE_LAUNCH,
 			async (scene: Scene) => {
-				if (!scene.name) {
-					this._log.warn("未选择启动场景，不能获取到场景数据");
-					this._initTask.finish(true);
-
-					return;
+				// 编辑器预览模式会触发两次 EVENT_BEFORE_SCENE_LAUNCH，首次场景数据无效
+				if (window["cc"].GAME_VIEW) {
+					await new Promise<void>((resolveFunc) => {
+						director.once(Director.EVENT_BEFORE_SCENE_LAUNCH, resolveFunc);
+					});
 				}
 
 				// init
 				await this.bundleMap.get("main")?.manage?.init?.();
 				// open
 				this._setBundleStr("main");
-				this._sceneStr = scene.name;
+				this._sceneStr = scene.name ?? "";
 				this._initTask.finish(true);
 			},
 			this
@@ -249,6 +256,15 @@ export class MKBundle extends MKInstanceBase {
 				bundleStr: config.bundleStr,
 			});
 
+		if (config.bundleStr !== this._bundleStr && !config.isPreload) {
+			await Promise.all(
+				this.event.request(this.event.key.bundleReadySwitch, {
+					currBundleStr: this._bundleStr,
+					nextBundleStr: config.bundleStr,
+				})
+			);
+		}
+
 		const bundle = await this.load(bundleInfo);
 
 		if (!bundle) {
@@ -292,10 +308,12 @@ export class MKBundle extends MKInstanceBase {
 			this._isSwitchScene = true;
 			// 切换 bundle 事件
 			if (bundle.name !== this._bundleStr) {
-				await this.event.request(this.event.key.beforeBundleSwitch, {
-					currBundleStr: this._bundleStr,
-					nextBundleStr: config.bundleStr,
-				});
+				await Promise.all(
+					this.event.request(this.event.key.beforeBundleSwitch, {
+						currBundleStr: this._bundleStr,
+						nextBundleStr: config.bundleStr,
+					})
+				);
 			}
 
 			// 切换场景事件
@@ -336,7 +354,7 @@ export class MKBundle extends MKInstanceBase {
 
 						config.unloadedCallbackFunc?.();
 						config.launchedCallbackFunc?.(error, scene);
-						resolveFunc(!scene);
+						resolveFunc(!error);
 					});
 				});
 			}).then((isSuccess) => {
@@ -361,18 +379,21 @@ export class MKBundle extends MKInstanceBase {
 			return null;
 		}
 
-		await this._engineInitTask.task;
-
 		if (!bundleInfo_.versionStr) {
 			this._log.error("不存在版本号");
 
 			return null;
 		}
 
-		if (this.bundleStr === bundleInfo_.bundleStr) {
-			this._log.error("不能在重载 bundle 的场景内进行重载");
+		await this._engineInitTask.task;
 
-			return null;
+		if (this.bundleStr === bundleInfo_.bundleStr) {
+			await new Promise<void>((resolveFunc) => {
+				this.event.once(this.event.key.bundleReadySwitch, () => resolveFunc(), this);
+			});
+
+			director.getScene()!.destroyAllChildren();
+			director.getScene()!.removeAllChildren();
 		}
 
 		/** bundle 脚本表 */
@@ -439,24 +460,22 @@ export class MKBundle extends MKInstanceBase {
 			// 清理名称匹配的 ccclass
 			const reg = bundleInfo_.ccclassRegexp ?? new RegExp(`${bundleInfo_.bundleStr}(_|/)`);
 
-			Object.keys((js as any)._registeredClassNames)
+			Object.keys((js as any)._registeredClassNames || (js as any)._nameToClass)
 				.filter((vStr) => vStr.match(reg) !== null)
 				.forEach((vStr) => {
 					js.unregisterClass(js.getClassByName(vStr));
 				});
 		}
 
+		const bundle = assetManager.getBundle(bundleInfo_.bundleStr);
+
 		// 清理 bundle 资源
-		{
-			const bundle = assetManager.getBundle(bundleInfo_.bundleStr);
-
-			if (bundle) {
-				if (bundleInfo_.bundleStr !== "main") {
-					bundle.releaseAll();
-				}
-
-				assetManager.removeBundle(bundle);
+		if (bundle) {
+			if (bundleInfo_.bundleStr !== "main") {
+				bundle.releaseAll();
 			}
+
+			assetManager.removeBundle(bundle);
 		}
 
 		// 更新版本号
@@ -614,7 +633,7 @@ export namespace MKBundle_ {
 		constructor() {
 			// 添加至 bundle 数据
 			setTimeout(async () => {
-				if (EDITOR && this.nameStr === MKBundle.instance().bundleStr) {
+				if (EDITOR && !window["cc"].GAME_VIEW && this.nameStr === MKBundle.instance().bundleStr) {
 					await this.init?.();
 					this.open();
 				}
@@ -625,7 +644,7 @@ export namespace MKBundle_ {
 				} as any);
 			}, 0);
 
-			if (EDITOR) {
+			if (EDITOR && !window["cc"].GAME_VIEW) {
 				return;
 			}
 
@@ -674,7 +693,7 @@ export namespace MKBundle_ {
 		init?(): void | Promise<void> {
 			if (
 				// 编辑器模式下只能运行 main bundle 的生命周期
-				(EDITOR && this.nameStr !== "main") ||
+				(EDITOR && !window["cc"].GAME_VIEW && this.nameStr !== "main") ||
 				// bundle 已经加载
 				this.isValid
 			) {
@@ -691,7 +710,7 @@ export namespace MKBundle_ {
 		 */
 		open(): void | Promise<void> {
 			// 编辑器模式下只能运行 main bundle 的生命周期
-			if (EDITOR && this.nameStr !== "main") {
+			if (EDITOR && !window["cc"].GAME_VIEW && this.nameStr !== "main") {
 				throw "中断";
 			}
 		}
@@ -718,6 +737,7 @@ export namespace MKBundle_ {
 			this.eventTargetList.splice(0, this.eventTargetList.length).forEach((v) => {
 				v.targetOff?.(this);
 			});
+
 			// 清理数据
 			// @weak-start-include-MKDataSharer
 			this.data?.reset();

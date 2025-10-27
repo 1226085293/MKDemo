@@ -2,5 +2,96 @@
   "__version__": "1.3.9",
   "log": {
     "level": 4
+  },
+  "common": {
+    "polyfills": {
+      "asyncFunctions": true
+    },
+    "buildPath": "project://build",
+    "outputName": "web-mobile",
+    "mainBundleCompressionType": "merge_dep",
+    "platform": "web-mobile",
+    "debug": true,
+    "sourceMaps": true,
+    "md5Cache": true,
+    "md5CacheOptions": {
+      "handleTemplateMd5Link": true
+    }
+  },
+  "BuildTaskManager": {
+    "taskMap": {
+      "1761544985194": {
+        "type": "build",
+        "id": "1761544985194",
+        "progress": 1,
+        "state": "success",
+        "stage": "build",
+        "message": "2025-10-27 14:04:11 build success in 1 min 5 s!",
+        "detailMessage": "// ---- build task cocos-service：onAfterBuild ----\r",
+        "options": {
+          "name": "MKDemo",
+          "server": "",
+          "engineModulesConfigKey": "migrationsConfig",
+          "platform": "web-mobile",
+          "buildPath": "project://build",
+          "debug": true,
+          "buildMode": "normal",
+          "mangleProperties": false,
+          "md5Cache": true,
+          "skipCompressTexture": false,
+          "sourceMaps": true,
+          "overwriteProjectSettings": {
+            "includeModules": {
+              "gfx-webgl2": "on",
+              "physics": "inherit-project-setting",
+              "physics-2d": "inherit-project-setting"
+            },
+            "macroConfig": {
+              "cleanupImageCache": "inherit-project-setting"
+            }
+          },
+          "nativeCodeBundleMode": "both",
+          "polyfills": {
+            "asyncFunctions": true
+          },
+          "experimentalEraseModules": false,
+          "startSceneAssetBundle": false,
+          "bundleConfigs": [],
+          "inlineEnum": true,
+          "useBuiltinServer": false,
+          "md5CacheOptions": {
+            "excludes": [],
+            "includes": [],
+            "replaceOnly": [],
+            "handleTemplateMd5Link": true
+          },
+          "mainBundleIsRemote": false,
+          "mainBundleCompressionType": "merge_dep",
+          "useSplashScreen": true,
+          "bundleCommonChunk": false,
+          "packAutoAtlas": true,
+          "startScene": "d9931fc3-486a-4428-85b7-5827a6f0c789",
+          "outputName": "web-mobile",
+          "taskName": "web-mobile",
+          "scenes": [
+            {
+              "url": "db://assets/Main.scene",
+              "uuid": "d9931fc3-486a-4428-85b7-5827a6f0c789"
+            },
+            {
+              "url": "db://assets/Game/Scene/Game.scene",
+              "uuid": "a2dbcc5b-0c5d-4265-a999-a7ad8ea3679f",
+              "bundle": "db://assets/Game"
+            }
+          ],
+          "wasmCompressionMode": false,
+          "packages": {},
+          "__version__": "1.3.9",
+          "logDest": "project://temp/builder/log/web-mobile2025-10-27 14-03.log"
+        },
+        "time": "2025-10-27 14:03:05",
+        "dirty": false
+      }
+    }
   }
 }

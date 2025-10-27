@@ -137,7 +137,7 @@ class MKLanguageLabel extends MKLanguageBase {
 
 		// 初始化类型
 		if (!this._typeStr) {
-			if (!EDITOR) {
+			if (!(EDITOR && !window["cc"].GAME_VIEW)) {
 				this._log.error("当前节点缺少多语言类型", this.node[" INFO "]);
 				this._typeStr = MKLanguageLabel._typeStrList[0];
 			}

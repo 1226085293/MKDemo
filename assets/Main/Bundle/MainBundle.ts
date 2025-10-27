@@ -8,7 +8,7 @@ class MainBundle extends mk.Bundle_.BundleManageBase {
 	nameStr = "main";
 
 	open(): void | Promise<void> {
-		if (EDITOR) {
+		if (EDITOR && !(window as any).cc.GAME_VIEW) {
 			return;
 		}
 

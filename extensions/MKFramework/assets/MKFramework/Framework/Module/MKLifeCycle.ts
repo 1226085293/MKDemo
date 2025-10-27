@@ -7,10 +7,9 @@ import MKStatusTask from "../Task/MKStatusTask";
 import MKLayer from "./MKLayer";
 /** @weak */
 import { mkAudio, MKAudio_ } from "../Audio/MKAudioExport";
-import MKRelease, { MKRelease_ } from "../MKRelease";
-import { MKAsset_ } from "../Resources/MKAsset";
+import MKRelease, { MKRelease_ } from "../Resources/MKRelease";
 import GlobalConfig from "../../Config/GlobalConfig";
-import { _decorator, js, CCClass, isValid, Node } from "cc";
+import { _decorator, js, CCClass, isValid, Node, Asset } from "cc";
 import mkToolFunc from "../@Private/Tool/MKToolFunc";
 import mkToolObject from "../@Private/Tool/MKToolObject";
 // @weak-start-include-MKUIManage
@@ -83,11 +82,11 @@ export namespace _MKLifeCycle {
  * 用于模块生命周期控制，注意所有生命周期函数 onLoad、open ... 等都会自动执行父类函数再执行子类函数，不必手动 super.xxx 调用
  */
 @ccclass
-export class MKLifeCycle extends MKLayer implements MKAsset_.TypeFollowReleaseObject {
+export class MKLifeCycle extends MKLayer implements MKRelease_.TypeFollowReleaseObject<Asset> {
 	constructor(...argsList: any[]) {
 		// @ts-ignore
 		super(...argsList);
-		if (EDITOR) {
+		if (EDITOR && !window["cc"].GAME_VIEW) {
 			return;
 		}
 
@@ -360,11 +359,7 @@ export class MKLifeCycle extends MKLayer implements MKAsset_.TypeFollowReleaseOb
 		return this._open({ isFirst: true, init: initData_ });
 	}
 
-	// @weak-start-content-MKAudioExport
-	// @position:/(?<=TypeReleaseParamType)/
-	// @import: & MKAudio_.PrivateUnit
-	followRelease<T = MKRelease_.TypeReleaseParamType & MKAudio_.PrivateUnit>(object_: T): void {
-		// @weak-end
+	followRelease<T = MKRelease_.TypeReleaseParamType>(object_: T): void {
 		if (!object_) {
 			return;
 		}
@@ -375,53 +370,23 @@ export class MKLifeCycle extends MKLayer implements MKAsset_.TypeFollowReleaseOb
 			return;
 		}
 
-		// @weak-start-include-MKAudioExport
-		// 添加释放对象
-		if (MKAudio_ && object_ instanceof MKAudio_.PrivateUnit) {
-			if (object_.clip) {
-				// 如果模块已经关闭则直接释放
-				if (this._state === _MKLifeCycle.RunState.Close) {
-					this._log.debug("在模块关闭后跟随释放资源会被立即释放");
-					MKRelease.release(object_.clip);
-				} else {
-					this._releaseManage.add(object_.clip);
-				}
-			}
+		// 如果模块已经关闭则直接释放
+		if (this._state === _MKLifeCycle.RunState.Close) {
+			this._log.debug("在模块关闭后跟随释放资源会被立即释放");
+			MKRelease.release(object_ as any);
 		} else {
-			// @weak-end
-			// 如果模块已经关闭则直接释放
-			if (this._state === _MKLifeCycle.RunState.Close) {
-				this._log.debug("在模块关闭后跟随释放资源会被立即释放");
-				MKRelease.release(object_ as any);
-			} else {
-				this._releaseManage.add(object_ as any);
-			}
-			// @weak-start-include-MKAudioExport
+			// 添加释放对象
+			this._releaseManage.add(object_ as any);
 		}
-		// @weak-end
 	}
 
-	// @weak-start-content-MKAudioExport
-	// @import: & MKAudio_.PrivateUnit
-	// @position:/(?<=TypeReleaseParamType)/
-	cancelRelease<T = MKRelease_.TypeReleaseParamType & MKAudio_.PrivateUnit>(object_: T): void {
-		// @weak-end
+	cancelRelease<T = MKRelease_.TypeReleaseParamType>(object_: T): void {
 		if (!object_) {
 			return;
 		}
 
-		// @weak-start-include-MKAudioExport
 		// 删除释放对象
-		if (object_ instanceof MKAudio_.PrivateUnit) {
-			if (object_.clip) {
-				this._releaseManage.delete(object_.clip);
-			}
-		} else {
-			// @weak-end
-			this._releaseManage.delete(object_ as any);
-			// @weak-start-include-MKAudioExport
-		}
-		// @weak-end
+		this._releaseManage.delete(object_ as any);
 
 		return;
 	}
