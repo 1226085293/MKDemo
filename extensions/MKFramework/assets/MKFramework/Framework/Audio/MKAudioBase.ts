@@ -6,7 +6,7 @@ import globalEvent from "../../Config/GlobalEvent";
 import GlobalConfig from "../../Config/GlobalConfig";
 import MKRelease, { MKRelease_ } from "../Resources/MKRelease";
 // eslint-disable-next-line unused-imports/no-unused-imports
-import { _decorator, AudioClip, AudioSource, Enum } from "cc";
+import { _decorator, AudioClip, AudioSource, director, Enum, find, Node } from "cc";
 import mkToolObject from "../@Private/Tool/MKToolObject";
 
 const { ccclass, property } = _decorator;
@@ -20,11 +20,25 @@ abstract class MKAudioBase {
 		globalEvent.on(globalEvent.key.restart, this._eventRestart, this);
 	}
 
+	/**
+	 * 音频间隔限制表
+	 * @remarks
+	 * - key: AudioClip 资源的 uuid
+	 * - value: 限制间隔时间（毫秒）
+	 */
+	audioIntervalMsLimitTab: Record<string, number> = {};
+	/** 音频组 */
+	get groupMap(): ReadonlyMap<number, MKAudioBase_.Group> {
+		return this._groupMap;
+	}
 	/* --------------- protected --------------- */
 	/** 日志 */
 	protected abstract _log: MKLogger;
 	/** 音频组 */
 	protected _groupMap = new Map<number, MKAudioBase_.Group>();
+	/* --------------- private --------------- */
+	/** 音频播放时间戳表 */
+	private _audioPlayTimestampTab: Record<string, number> = {};
 	/* ------------------------------- 功能 ------------------------------- */
 	/** 暂停 */
 	abstract pause(audio_: MKAudioBase_.Unit): void;
@@ -117,6 +131,7 @@ abstract class MKAudioBase {
 				return;
 			}
 
+			v._followReleaseTarget = target_;
 			this._add(v, config_?.groupIdNumList);
 		});
 
@@ -137,63 +152,107 @@ abstract class MKAudioBase {
 	 * 播放音效
 	 * @param audio_ 音频单元
 	 * @param config_ 播放配置
-	 * @returns
+	 * @returns 返回 null 则代表当前音频单元无效，
 	 * @remarks
 	 * 使用通用音频系统时，当播放数量超过 AudioSource.maxAudioChannel 时会导致播放失败
 	 */
-	play(audio_: MKAudioBase_.Unit, config_?: Partial<MKAudioBase_.PlayConfig>): boolean {
-		const audio = audio_ as MKAudioBase_.PrivateUnit;
+	async play(audio_: MKAudioBase_.Unit | string, config_?: Partial<MKAudioBase_.PlayConfig>): Promise<MKAudioBase_.Unit | null> {
+		let audio: MKAudioBase_.Unit | null;
 
-		// 参数安检
-		if (!audio_?.clip) {
-			return false;
-		}
+		if (typeof audio_ === "string") {
+			const node = find("音频跟随释放节点") || new Node("音频跟随释放节点");
 
-		// 初始化音频
-		{
-			// 更新配置
-			if (config_) {
-				Object.assign(audio, config_);
+			if (!node.parent) {
+				node.parent = director.getScene();
 			}
 
-			// 添加音频
-			this._add(audio, audio.groupIdNumList);
+			audio = await this.add(audio_, node, {
+				type: GlobalConfig.Audio.Type.Effect,
+			});
+		} else {
+			audio = audio_;
 		}
+
+		// 参数安检
+		if (!audio?.clip) {
+			return null;
+		}
+
+		// 更新配置
+		if (config_) {
+			Object.assign(audio, config_);
+		}
+
+		// 添加音频
+		this._add(audio as MKAudioBase_.PrivateUnit, audio.groupIdNumList);
 
 		if (audio.groupIdNumList.some((vNum) => this.getGroup(vNum).isStop)) {
-			return false;
+			return null;
 		}
 
-		return true;
+		// 间隔限制
+		if (this.audioIntervalMsLimitTab[audio.clip.uuid]) {
+			// 超过限制时间
+			if (Date.now() - (this._audioPlayTimestampTab[audio.clip.uuid] ?? 0) < this.audioIntervalMsLimitTab[audio.clip.uuid]) {
+				return null;
+			}
+
+			this._audioPlayTimestampTab[audio.clip.uuid] = Date.now();
+		}
+
+		return audio;
 	}
 
-	/** 暂停所有音频 */
+	/**
+	 * 暂停所有音频
+	 * @remarks
+	 * 不会阻止后续音频播放
+	 */
 	pauseAll(): void {
-		this._groupMap.forEach((v) => {
-			v.audioUnitList.forEach((v2) => {
-				this.pause(v2);
-			});
-		});
+		for (const kStr in GlobalConfig.Audio.Type) {
+			if (!isNaN(Number(kStr))) {
+				continue;
+			}
+
+			const v = GlobalConfig.Audio.Type[kStr] as unknown as GlobalConfig.Audio.Type;
+
+			this._groupMap.get(v)?.pause();
+		}
 	}
 
-	/** 恢复所有音频 */
+	/** 恢复所有暂停的音频 */
 	resumeAll(): void {
-		this._groupMap.forEach((v) => {
-			v.audioUnitList.forEach((v2) => {
-				if (v2.state === MKAudioBase_.State.Pause) {
-					this.play(v2);
-				}
-			});
-		});
+		for (const kStr in GlobalConfig.Audio.Type) {
+			if (!isNaN(Number(kStr))) {
+				continue;
+			}
+
+			const v = GlobalConfig.Audio.Type[kStr] as unknown as GlobalConfig.Audio.Type;
+
+			this._groupMap.get(v)?.play(MKAudioBase_.State.Pause);
+		}
 	}
 
-	/** 停止所有音频 */
-	stopAll(): void {
-		this._groupMap.forEach((v) => {
-			v.audioUnitList.forEach((v2) => {
-				this.stop(v2);
-			});
-		});
+	/**
+	 * 停止所有音频
+	 * @param isPreventPlay_ 阻止后续播放，恢复后续播放则执行对应分组的 stop(false)；默认值 false
+	 */
+	stopAll(isPreventPlay_ = false): void {
+		for (const kStr in GlobalConfig.Audio.Type) {
+			if (!isNaN(Number(kStr))) {
+				continue;
+			}
+
+			const v = GlobalConfig.Audio.Type[kStr] as unknown as GlobalConfig.Audio.Type;
+
+			if (isPreventPlay_) {
+				this._groupMap.get(v)?.stop();
+			} else {
+				this._groupMap.get(v)?.audioUnitList.forEach((v2) => {
+					this.stop(v2);
+				});
+			}
+		}
 	}
 
 	/**
@@ -367,6 +426,12 @@ export namespace MKAudioBase_ {
 		/** 事件对象 */
 		// eslint-disable-next-line @typescript-eslint/naming-convention
 		_event?: MKEventTarget<EventProtocol>;
+		/**
+		 * 跟随释放对象
+		 * @internal
+		 */
+		// eslint-disable-next-line @typescript-eslint/naming-convention
+		_followReleaseTarget: MKRelease_.TypeFollowReleaseSupport = null!;
 		/** 分组 */
 		groupIdNumList: number[] = [];
 		/** 播放状态 */
@@ -546,8 +611,8 @@ export namespace MKAudioBase_ {
 		/* ------------------------------- 功能 ------------------------------- */
 		/**
 		 * 播放
-		 * @param containsStateNum_ 包含状态，处于这些状态中的音频将被播放，例：`mk.Audio_.State.Pause | mk.Audio_.State.Stop`
-		 * @defaultValue `State.Pause | State.Stop`
+		 * @param containsStateNum_ 包含状态，处于这些状态中的音频将被播放；
+		 * 默认值 `mk.Audio_.State.Pause | mk.Audio_.State.Stop`
 		 */
 		play(containsStateNum_ = State.Pause | State.Stop): void {
 			// 停止状态没有暂停的音乐
@@ -583,7 +648,7 @@ export namespace MKAudioBase_ {
 		/**
 		 * 停止
 		 * @param isStop_
-		 * 默认为 true，true: 停止当前并阻止后续音频播放；false: 恢复播放能力
+		 * true: 停止当前并阻止后续音频播放；false: 恢复播放能力；默认值 true
 		 * @remarks
 		 * - 停止后续播放音频将不会执行播放逻辑
 		 */
@@ -598,7 +663,10 @@ export namespace MKAudioBase_ {
 			}
 		}
 
-		/** 添加音频 */
+		/**
+		 * 添加音频
+		 * @param audio_ 音频单元或音频单元列表
+		 */
 		addAudio(audio_: Unit | Unit[]): void {
 			let audioUnitList: PrivateUnit[];
 
@@ -626,7 +694,10 @@ export namespace MKAudioBase_ {
 			});
 		}
 
-		/** 删除音频 */
+		/**
+		 * 删除音频
+		 * @param audio_ 音频单元或音频单元列表
+		 */
 		delAudio(audio_: Unit | Unit[]): void {
 			const selfAudioUnitList = this.audioUnitList as PrivateUnit[];
 			let audioUnitList: PrivateUnit[];

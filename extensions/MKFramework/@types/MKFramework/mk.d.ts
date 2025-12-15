@@ -3,6 +3,7 @@
 import GlobalConfig from "../../assets/MKFramework/Config/GlobalConfig";
 
 import { __private } from "cc";
+import { Animation as Animation_2 } from "cc";
 import { Asset } from "cc";
 import { AssetManager } from "cc";
 import { AudioClip } from "cc";
@@ -273,8 +274,8 @@ declare namespace mk {
 			private _isStop;
 			/**
 			 * 播放
-			 * @param containsStateNum_ 包含状态，处于这些状态中的音频将被播放，例：`mk.Audio_.State.Pause | mk.Audio_.State.Stop`
-			 * @defaultValue `State.Pause | State.Stop`
+			 * @param containsStateNum_ 包含状态，处于这些状态中的音频将被播放；
+			 * 默认值 `mk.Audio_.State.Pause | mk.Audio_.State.Stop`
 			 */
 			play(containsStateNum_?: number): void;
 			/** 暂停 */
@@ -282,14 +283,20 @@ declare namespace mk {
 			/**
 			 * 停止
 			 * @param isStop_
-			 * 默认为 true，true: 停止当前并阻止后续音频播放；false: 恢复播放能力
+			 * true: 停止当前并阻止后续音频播放；false: 恢复播放能力；默认值 true
 			 * @remarks
 			 * - 停止后续播放音频将不会执行播放逻辑
 			 */
 			stop(isStop_?: boolean): void;
-			/** 添加音频 */
+			/**
+			 * 添加音频
+			 * @param audio_ 音频单元或音频单元列表
+			 */
 			addAudio(audio_: Unit | Unit[]): void;
-			/** 删除音频 */
+			/**
+			 * 删除音频
+			 * @param audio_ 音频单元或音频单元列表
+			 */
 			delAudio(audio_: Unit | Unit[]): void;
 			/** 清理所有音频 */
 			clear(): Unit[];
@@ -387,24 +394,26 @@ declare namespace mk {
 			/* Excluded from this release type: eventTargetList */
 			/** 释放管理器 */
 			protected _releaseManage: Release;
+			/** 强制关闭 */
+			private _isForceClose;
 			/**
 			 * 初始化
 			 * @remarks
 			 * 从其他 bundle 的场景切换到此 bundle 的场景之前调用
 			 */
-			init?(): void | Promise<void>;
+			init?(): void;
 			/**
 			 * 打开回调
 			 * @remarks
 			 * 从其他 bundle 的场景切换到此 bundle 的场景时调用
 			 */
-			open(): void | Promise<void>;
+			open(): void;
 			/**
 			 * 关闭回调
 			 * @remarks
 			 * 从此 bundle 的场景切换到其他 bundle 的场景时调用
 			 */
-			close(): void | Promise<void>;
+			close(): void;
 			followRelease<T = Release_.TypeReleaseParamType>(object_: T): T;
 			cancelRelease<T = Release_.TypeReleaseParamType>(object_: T): void;
 		}
@@ -508,7 +517,7 @@ declare namespace mk {
 		 */
 		has<T extends keyof CT, T2 extends (...argsList: Parameters<CT[T]>) => void>(type_: T, callback_?: T2, target_?: any): boolean;
 		/** 清空所有事件 */
-		clear: () => void;
+		clear(): void;
 		/**
 		 * 请求事件
 		 * @param type_ 事件类型
@@ -573,6 +582,8 @@ declare namespace mk {
 		private _taskPipeline;
 		/** 步骤预加载任务表 */
 		private _stepPreloadMap;
+		/** 是否完成 */
+		private _isFinish;
 		/**
 		 * 注册步骤
 		 * @param step_ 步骤实例
@@ -589,16 +600,19 @@ declare namespace mk {
 		 * @param stepNum_ 步骤
 		 * @param initData_ 初始化数据
 		 * @remarks
-		 *
-		 * - 暂停状态：更新步骤数据
-		 *
-		 * - 正常状态：更新步骤数据，执行步骤生命周期
+		 * - 正常状态下：执行完整步骤切换流程
+		 * - 暂停状态下：仅更新步骤数据，不执行生命周期
+		 * - 完成状态下：重置完成状态为 `false`，重新执行引导
 		 */
 		setStep(stepNum_: number, initData_?: any): Promise<void>;
 		/** 获取步骤 */
 		getStep(): number;
 		/** 完成引导 */
-		finish(): void;
+		finish(): Promise<void>;
+		/** 更新操作 */
+		private _updateOperate;
+		/** 卸载步骤 */
+		private _uninstallStep;
 		/** 更新步骤数据 */
 		private _updateStepData;
 		private _setIsPause;
@@ -687,6 +701,7 @@ declare namespace mk {
 	 * @noInheritDoc
 	 */
 	export declare abstract class GuideStepBase<CT extends Record<string, GuideManage_.OperateCell> = any> extends Component {
+		constructor();
 		/** 步骤序号 */
 		abstract stepNum: number;
 		/**
@@ -722,25 +737,27 @@ declare namespace mk {
 		 * - length > 1：预加载
 		 */
 		nextStepNumList?: number[];
+		/* Excluded from this release type: eventTargetList */
+		/* Excluded from this release type: isFinish */
 		/**
 		 * 预加载
 		 * @remarks
 		 * 上个步骤 load 后执行
 		 */
-		preLoad?(): void | Promise<void>;
+		preLoad?(): void;
 		/**
 		 * 加载
 		 * @param isJump_ 跳转状态
 		 * @remarks
 		 * 进入当前步骤
 		 */
-		abstract load(isJump_: boolean): void | Promise<void>;
+		abstract load(isJump_: boolean): void;
 		/**
 		 * 卸载
 		 * @remarks
 		 * 退出当前步骤
 		 */
-		unload?(): void | Promise<void>;
+		unload(): void;
 		/**
 		 * 跳转到下个步骤
 		 * @param initData_ 下个步骤初始化数据
@@ -812,8 +829,8 @@ declare namespace mk {
 			layerSpacingNum: number;
 			layerRefreshIntervalMsNum: number;
 			windowAnimationTab: Readonly<{
-				open: Record<string, (value: Node_2) => void | Promise<void>>;
-				close: Record<string, (value: Node_2) => void | Promise<void>>;
+				open: Record<string, (value: Node_2) => void>;
+				close: Record<string, (value: Node_2) => void>;
 			}>;
 		};
 		/** 初始化编辑器 */
@@ -823,6 +840,8 @@ declare namespace mk {
 		/** 层级 */
 		get childLayerNum(): number;
 		set childLayerNum(valueNum_: number);
+		/** 真实渲染次序 */
+		get orderNum(): number;
 		/**
 		 * 使用 layer
 		 * @defaultValue
@@ -856,15 +875,7 @@ declare namespace mk {
 		 * 如果是 class 类型数据会在 close 后自动重置，根据 this._isResetData 控制
 		 */
 		data?: any;
-		/**
-		 * 事件对象列表
-		 * @readonly
-		 * @remarks
-		 * 模块关闭后自动清理事件
-		 */
-		eventTargetList: {
-			targetOff?(target: any): any;
-		}[];
+		/* Excluded from this release type: eventTargetList */
 		/**
 		 * 有效状态
 		 * @remarks
@@ -898,6 +909,8 @@ declare namespace mk {
 		private _log2;
 		/** 初始化计数（防止 onLoad 前多次初始化调用多次 init） */
 		private _waitInitNum;
+		/** open 信息 */
+		private _openData;
 		protected onLoad(): void;
 		/**
 		 * 创建
@@ -1086,6 +1099,8 @@ declare namespace mk {
 		private _assetReleaseMap;
 		/** 释放定时器 */
 		private _releaseTimer;
+		/** 远程图片关联资源表 */
+		private _remoteImageAssociationResourceMap;
 		/**
 		 * 获取资源
 		 * @param pathStr_ 资源路径
@@ -1164,10 +1179,21 @@ declare namespace mk {
 	 */
 	declare abstract class MKAudioBase {
 		constructor();
+		/**
+		 * 音频间隔限制表
+		 * @remarks
+		 * - key: AudioClip 资源的 uuid
+		 * - value: 限制间隔时间（毫秒）
+		 */
+		audioIntervalMsLimitTab: Record<string, number>;
+		/** 音频组 */
+		get groupMap(): ReadonlyMap<number, Audio_.Group>;
 		/** 日志 */
 		protected abstract _log: Logger;
 		/** 音频组 */
 		protected _groupMap: Map<number, Audio_.Group>;
+		/** 音频播放时间戳表 */
+		private _audioPlayTimestampTab;
 		/** 暂停 */
 		abstract pause(audio_: Audio_.Unit): void;
 		/** 停止 */
@@ -1195,17 +1221,24 @@ declare namespace mk {
 		 * 播放音效
 		 * @param audio_ 音频单元
 		 * @param config_ 播放配置
-		 * @returns
+		 * @returns 返回 null 则代表当前音频单元无效，
 		 * @remarks
 		 * 使用通用音频系统时，当播放数量超过 AudioSource.maxAudioChannel 时会导致播放失败
 		 */
-		play(audio_: Audio_.Unit, config_?: Partial<Audio_.PlayConfig>): boolean;
-		/** 暂停所有音频 */
+		play(audio_: Audio_.Unit | string, config_?: Partial<Audio_.PlayConfig>): Promise<Audio_.Unit | null>;
+		/**
+		 * 暂停所有音频
+		 * @remarks
+		 * 不会阻止后续音频播放
+		 */
 		pauseAll(): void;
-		/** 恢复所有音频 */
+		/** 恢复所有暂停的音频 */
 		resumeAll(): void;
-		/** 停止所有音频 */
-		stopAll(): void;
+		/**
+		 * 停止所有音频
+		 * @param isPreventPlay_ 阻止后续播放，恢复后续播放则执行对应分组的 stop(false)；默认值 false
+		 */
+		stopAll(isPreventPlay_?: boolean): void;
 		/* Excluded from this release type: _add */
 		protected _eventRestart(): void;
 	}
@@ -1281,24 +1314,44 @@ declare namespace mk {
 		 * @returns
 		 */
 		reload(bundleInfo_: ConstructorParameters<typeof Bundle_.ReloadBundleInfo>[0]): Promise<AssetManager.Bundle | null>;
+		/**
+		 * 获取 bundle 缓存信息
+		 * @param bundleStr_ Bundle 名
+		 * @returns
+		 * * null 不存在缓存
+		 * * 有数据: 上次加载的 bundle 信息
+		 */
+		getCache(bundleStr_: string): null | {
+			/** 版本号 */
+			versionStr: string;
+			/** bundle url */
+			urlStr: string;
+		};
 		private _setBundleStr;
 		private _setSceneStr;
 	}
 
 	declare namespace _MKBundle {
 		interface EventProtocol {
-			/** bundle 切换前事件 */
-			beforeBundleSwitch(event: {
-				/** 当前 bundle  */
+			/** bundle 准备切换事件（准备从此 Bundle 场景切换到其他 Bundle 场景，先于 loadBundle 触发） */
+			bundleReadySwitch(event: {
+				/** 当前 bundle 名  */
 				currBundleStr: string;
-				/** 下个 bundle  */
+				/** 下个 bundle 名  */
+				nextBundleStr: string;
+			}): any;
+			/** bundle 切换前事件（从此 Bundle 场景切换到其他 Bundle 场景前） */
+			beforeBundleSwitch(event: {
+				/** 当前 bundle 名  */
+				currBundleStr: string;
+				/** 下个 bundle 名  */
 				nextBundleStr: string;
 			}): void;
-			/** bundle 切换后事件 */
+			/** bundle 切换后事件（从此 Bundle 场景切换到其他 Bundle 场景后） */
 			afterBundleSwitch(event: {
-				/** 当前 bundle  */
+				/** 当前 bundle 名  */
 				currBundleStr: string;
-				/** 上个 bundle  */
+				/** 上个 bundle 名  */
 				preBundleStr: string;
 			}): void;
 			/** 场景切换前事件 */
@@ -1314,6 +1367,16 @@ declare namespace mk {
 				currSceneStr: string;
 				/** 上个场景 */
 				preSceneStr: string;
+			}): void;
+			/** bundle 重载前事件 */
+			beforeBundleReload(event: {
+				/** 重载 bundle 名  */
+				bundleStr: string;
+			}): void;
+			/** bundle 重载后事件 */
+			afterBundleReload(event: {
+				/** 重载 bundle 名  */
+				bundleStr: string;
 			}): void;
 		}
 	}
@@ -1740,8 +1803,18 @@ declare namespace mk {
 			isFirst?: boolean;
 			/** 销毁动态子节点 */
 			isDestroyChildren?: boolean;
-			/** 强制关闭（无需等待模块 open 完成） */
-			isForce?: boolean;
+		}
+		interface OpenShareData {
+			/** 有效计数 */
+			validCountNum: number;
+			/** 来源组件 uuid */
+			originUuidStr: string;
+		}
+		interface OpenData {
+			/** 当前计数 */
+			currentCountNum: number;
+			/** 共享数据 */
+			shareData: OpenShareData;
 		}
 	}
 
@@ -2316,9 +2389,9 @@ declare namespace mk {
 			 */
 			resetFunc?: (object: CT, isCreate: boolean) => CT | Promise<CT>;
 			/** 释放回调 */
-			clearFunc?: (objectList: CT[]) => void | Promise<void>;
+			clearFunc?: (objectList: CT[]) => void;
 			/** 销毁回调 */
-			destroyFunc?: () => void | Promise<void>;
+			destroyFunc?: () => void;
 			/**
 			 * 最小保留数量
 			 * @remarks
@@ -2806,7 +2879,7 @@ declare namespace mk {
 		label: Label;
 		sprite: Sprite;
 		transform: UITransform;
-		animation: Animation;
+		animation: Animation_2;
 		editBox: EditBox;
 		richText: RichText;
 		layout: Layout;
@@ -2991,13 +3064,13 @@ declare namespace mk {
 	 */
 	export declare class Release {
 		/** 节点集合 */
-		private _nodeSet;
+		private _nodeList;
 		/** 资源集合 */
-		private _assetSet;
+		private _assetList;
 		/** 对象集合 */
-		private _objectSet;
+		private _objectList;
 		/** 回调集合 */
-		private _callbackSet;
+		private _callbackList;
 		/**
 		 * 释放对象
 		 * @param object_ 指定对象
@@ -3024,7 +3097,7 @@ declare namespace mk {
 		 * 删除释放对象
 		 * @param object_ 删除跟随模块释放的对象或列表
 		 */
-		delete<T extends Release_.TypeReleaseParamType>(object_: T): void;
+		delete<T extends Release_.TypeReleaseParamType>(object_: T): boolean;
 		/**
 		 * 释放对象
 		 * @param object_ 指定对象
@@ -3255,13 +3328,13 @@ declare namespace mk {
 		typeStr: string;
 		/** 模块配置 */
 		set config(config_: _MKViewBase.CreateConfig);
-		protected open(): void | Promise<void>;
+		protected open(): void;
 		/**
 		 * 关闭
 		 * @param config_ 关闭配置
 		 */
-		close(config_?: Omit<UIManage_.CloseConfig<any>, "type" | "isAll">): void | Promise<void>;
-		protected lateClose?(): void | Promise<void>;
+		close(config_?: Omit<UIManage_.CloseConfig<any>, "type" | "isAll">): void;
+		protected lateClose?(): void;
 		/** 初始化编辑器 */
 		protected _initEditor(): void;
 		private _getIsAutoMask;

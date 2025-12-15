@@ -7,29 +7,30 @@ import MKStatusTask from "../Task/MKStatusTask";
 import type { MKDataSharer_ } from "../MKDataSharer";
 import mkToolFunc from "../@Private/Tool/MKToolFunc";
 import MKRelease, { MKRelease_ } from "./MKRelease";
-import { game, Game, director, Director, Scene, AssetManager, assetManager, js, Component, NodePool } from "cc";
+import { game, Game, director, Director, Scene, AssetManager, assetManager, js, Component, settings, SettingsCategory } from "cc";
+import globalEvent from "../../Config/GlobalEvent";
 
 namespace _MKBundle {
 	export interface EventProtocol {
 		/** bundle 准备切换事件（准备从此 Bundle 场景切换到其他 Bundle 场景，先于 loadBundle 触发） */
 		bundleReadySwitch(event: {
-			/** 当前 bundle  */
+			/** 当前 bundle 名  */
 			currBundleStr: string;
-			/** 下个 bundle  */
+			/** 下个 bundle 名  */
 			nextBundleStr: string;
 		});
 		/** bundle 切换前事件（从此 Bundle 场景切换到其他 Bundle 场景前） */
 		beforeBundleSwitch(event: {
-			/** 当前 bundle  */
+			/** 当前 bundle 名  */
 			currBundleStr: string;
-			/** 下个 bundle  */
+			/** 下个 bundle 名  */
 			nextBundleStr: string;
 		}): void;
 		/** bundle 切换后事件（从此 Bundle 场景切换到其他 Bundle 场景后） */
 		afterBundleSwitch(event: {
-			/** 当前 bundle  */
+			/** 当前 bundle 名  */
 			currBundleStr: string;
-			/** 上个 bundle  */
+			/** 上个 bundle 名  */
 			preBundleStr: string;
 		}): void;
 		/** 场景切换前事件 */
@@ -45,6 +46,16 @@ namespace _MKBundle {
 			currSceneStr: string;
 			/** 上个场景 */
 			preSceneStr: string;
+		}): void;
+		/** bundle 重载前事件 */
+		beforeBundleReload(event: {
+			/** 重载 bundle 名  */
+			bundleStr: string;
+		}): void;
+		/** bundle 重载后事件 */
+		afterBundleReload(event: {
+			/** 重载 bundle 名  */
+			bundleStr: string;
 		}): void;
 	}
 }
@@ -85,16 +96,23 @@ export class MKBundle extends MKInstanceBase {
 		director.once(
 			Director.EVENT_BEFORE_SCENE_LAUNCH,
 			async (scene: Scene) => {
-				// 编辑器预览模式会触发两次 EVENT_BEFORE_SCENE_LAUNCH，首次场景数据无效
-				if (window["cc"].GAME_VIEW) {
-					await new Promise<void>((resolveFunc) => {
+				// 版本适配(<=3.8.6)：编辑器预览模式会触发两次 EVENT_BEFORE_SCENE_LAUNCH，首次场景数据无效
+				if (window["cc"].GAME_VIEW && window["cc"].ENGINE_VERSION && Number(window["cc"].ENGINE_VERSION.replaceAll(".", "")) < 387) {
+					scene = await new Promise<Scene>((resolveFunc) => {
 						director.once(Director.EVENT_BEFORE_SCENE_LAUNCH, resolveFunc);
 					});
 				}
 
-				// init
+				// 更新已加载脚本缓存
+				((settings.querySettings("assets", "preloadBundles") ?? []) as { bundle: string; version?: string }[]).forEach((v) => {
+					if (v.version) {
+						this._loadedScriptCache[`${v.bundle.replaceAll("/", "")}-${v.version}`] = true;
+					}
+				});
+
+				// 初始化 Bundle 管理器
 				await this.bundleMap.get("main")?.manage?.init?.();
-				// open
+				// 初始化当前信息
 				this._setBundleStr("main");
 				this._sceneStr = scene.name ?? "";
 				this._initTask.finish(true);
@@ -151,6 +169,8 @@ export class MKBundle extends MKInstanceBase {
 	private _preSceneStr!: string;
 	/** 切换场景状态 */
 	private _isSwitchScene = false;
+	/** 已加载脚本缓存 */
+	private _loadedScriptCache: Record<string, boolean> = {};
 	/* ------------------------------- 功能 ------------------------------- */
 	/**
 	 * 设置 bundle 数据
@@ -199,8 +219,12 @@ export class MKBundle extends MKInstanceBase {
 		}
 
 		return new Promise<AssetManager.Bundle | null>((resolveFunc) => {
-			if (!bundleInfo) {
-				return;
+			const cacheInfo = this.getCache(bundleInfo.bundleStr);
+
+			// 不填版本号默认使用缓存中最新的版本
+			if (!bundleInfo.versionStr && cacheInfo) {
+				bundleInfo.originStr = cacheInfo.urlStr;
+				bundleInfo.versionStr = cacheInfo.versionStr;
 			}
 
 			assetManager.loadBundle(
@@ -215,6 +239,11 @@ export class MKBundle extends MKInstanceBase {
 						resolveFunc(null);
 
 						return;
+					}
+
+					// 更新已加载脚本缓存
+					if (bundleInfo.originStr?.startsWith("http")) {
+						this._loadedScriptCache[`${bundleInfo.originStr.replaceAll("/", "")}-${bundleInfo.versionStr}`] = true;
 					}
 
 					// 非远程 bundle 需要模拟进度回调
@@ -387,6 +416,12 @@ export class MKBundle extends MKInstanceBase {
 
 		await this._engineInitTask.task;
 
+		// 脚本不可重复加载（引擎内限制，否则二次加载报错）
+		if (this._loadedScriptCache[`${bundleInfo_.originStr.replaceAll("/", "")}-${bundleInfo_.versionStr}`]) {
+			this._log.error("不可重复加载相同路径和版本的 bundle");
+			return null;
+		}
+
 		if (this.bundleStr === bundleInfo_.bundleStr) {
 			await new Promise<void>((resolveFunc) => {
 				this.event.once(this.event.key.bundleReadySwitch, () => resolveFunc(), this);
@@ -395,6 +430,13 @@ export class MKBundle extends MKInstanceBase {
 			director.getScene()!.destroyAllChildren();
 			director.getScene()!.removeAllChildren();
 		}
+
+		// 重载前事件
+		await Promise.all(
+			this.event.request(this.event.key.beforeBundleReload, {
+				bundleStr: bundleInfo_.bundleStr,
+			})
+		);
 
 		/** bundle 脚本表 */
 		const bundleScriptTab: Record<string, any> = {};
@@ -478,17 +520,59 @@ export class MKBundle extends MKInstanceBase {
 			assetManager.removeBundle(bundle);
 		}
 
-		// 更新版本号
-		{
-			if (!assetManager.downloader.bundleVers) {
-				assetManager.downloader.bundleVers = {};
-			}
+		// 加载 bundle
+		const loadTask = await this.load(bundleInfo_);
 
+		// 更新版本号
+		if (loadTask) {
 			assetManager.downloader.bundleVers[bundleInfo_.bundleStr] = bundleInfo_.versionStr;
+			settings.overrideSettings(SettingsCategory.ASSETS, "bundleVers", assetManager.downloader.bundleVers);
 		}
 
-		// 加载 bundle
-		return this.load(bundleInfo_);
+		// 重载后事件
+		this.event.emit(this.event.key.afterBundleReload, {
+			bundleStr: bundleInfo_.bundleStr,
+		});
+
+		return loadTask;
+	}
+
+	/**
+	 * 获取 bundle 缓存信息
+	 * @param bundleStr_ Bundle 名
+	 * @returns
+	 * * null 不存在缓存
+	 * * 有数据: 上次加载的 bundle 信息
+	 */
+	getCache(bundleStr_: string): null | {
+		/** 版本号 */
+		versionStr: string;
+		/** bundle url */
+		urlStr: string;
+	} {
+		if (!assetManager.cacheManager) {
+			return null;
+		}
+
+		let data: ReturnType<typeof assetManager.cacheManager.cachedFiles.get> = null;
+		let keyStr = "";
+
+		assetManager.cacheManager?.cachedFiles?.forEach((v2, k2Str) => {
+			if (k2Str.includes(`/${bundleStr_}/index.`) && (!data || data.lastTime < v2.lastTime)) {
+				keyStr = k2Str;
+				data = v2;
+			}
+		});
+
+		const versionStr = !data ? "" : keyStr.split(".").slice(-2)[0];
+		const urlStr = !data ? bundleStr_ : keyStr.slice(0, keyStr.indexOf("/index."));
+
+		return !data
+			? null
+			: {
+					versionStr: versionStr,
+					urlStr: urlStr,
+				};
 	}
 
 	/* ------------------------------- get/set ------------------------------- */
@@ -550,7 +634,7 @@ export namespace MKBundle_ {
 		/** 版本 */
 		versionStr?: string;
 		/**
-		 * 资源路径
+		 * bundle 远程 URL
 		 * @defaultValue
 		 * this.bundleStr
 		 * @remarks
@@ -642,22 +726,34 @@ export namespace MKBundle_ {
 					bundleStr: this.nameStr,
 					manage: this,
 				} as any);
+
+				// main bundle close 回调控制
+				if (this.nameStr === "main") {
+					// 重载
+					MKBundle.instance().event.once(
+						MKBundle.instance().event.key.beforeBundleReload,
+						() => {
+							this._isForceClose = true;
+							this.close();
+						},
+						this
+					);
+
+					// 重启游戏
+					globalEvent.once(
+						globalEvent.key.restart,
+						() => {
+							this._isForceClose = true;
+							this.close();
+						},
+						this
+					);
+				}
 			}, 0);
 
 			if (EDITOR && !window["cc"].GAME_VIEW) {
 				return;
 			}
-
-			// 对象池
-			this.nodePoolTab = new Proxy(js.createMap(true), {
-				get: (target_, key_) => {
-					if (!target_[key_]) {
-						target_[key_] = new NodePool(key_ as string);
-					}
-
-					return target_[key_];
-				},
-			}) as any;
 
 			// 自动执行生命周期
 			mkToolFunc.runParentFunc(this, ["init", "open", "close"]);
@@ -668,8 +764,6 @@ export namespace MKBundle_ {
 		abstract nameStr: string;
 		/** 管理器有效状态 */
 		isValid = false;
-		/** 节点池表 */
-		nodePoolTab!: Record<string, NodePool>;
 		/** 事件对象 */
 		event?: MKEventTarget<any>;
 		/** 数据共享器 */
@@ -684,13 +778,16 @@ export namespace MKBundle_ {
 		/* --------------- protected --------------- */
 		/** 释放管理器 */
 		protected _releaseManage = new MKRelease();
+		/* --------------- private --------------- */
+		/** 强制关闭 */
+		private _isForceClose = false;
 		/* ------------------------------- 生命周期 ------------------------------- */
 		/**
 		 * 初始化
 		 * @remarks
 		 * 从其他 bundle 的场景切换到此 bundle 的场景之前调用
 		 */
-		init?(): void | Promise<void> {
+		init?(): void {
 			if (
 				// 编辑器模式下只能运行 main bundle 的生命周期
 				(EDITOR && !window["cc"].GAME_VIEW && this.nameStr !== "main") ||
@@ -708,7 +805,7 @@ export namespace MKBundle_ {
 		 * @remarks
 		 * 从其他 bundle 的场景切换到此 bundle 的场景时调用
 		 */
-		open(): void | Promise<void> {
+		open(): void {
 			// 编辑器模式下只能运行 main bundle 的生命周期
 			if (EDITOR && !window["cc"].GAME_VIEW && this.nameStr !== "main") {
 				throw "中断";
@@ -720,17 +817,18 @@ export namespace MKBundle_ {
 		 * @remarks
 		 * 从此 bundle 的场景切换到其他 bundle 的场景时调用
 		 */
-		close(): void | Promise<void> {
+		close(): void {
 			if (!this.isValid) {
 				mkLog.error("bundle 已经卸载");
 				throw "中断";
 			}
 
-			if (this.nameStr === "main") {
+			if (this.nameStr === "main" && !this._isForceClose) {
 				throw "中断";
 			}
 
 			this.isValid = false;
+			this._isForceClose = false;
 
 			// 清理事件
 			this.event?.clear();
@@ -742,14 +840,6 @@ export namespace MKBundle_ {
 			// @weak-start-include-MKDataSharer
 			this.data?.reset();
 			// @weak-end
-
-			// 清理对象池
-			for (const kStr in this.nodePoolTab) {
-				if (Object.prototype.hasOwnProperty.call(this.nodePoolTab, kStr)) {
-					this.nodePoolTab[kStr].clear();
-					delete this.nodePoolTab[kStr];
-				}
-			}
 
 			// 释放对象
 			this._releaseManage.releaseAll();
@@ -788,5 +878,3 @@ export namespace MKBundle_ {
 const mkBundle = MKBundle.instance();
 
 export default mkBundle;
-
-// ...需要在 main bundle reload 时执行 MainBundleManage.close

@@ -8,8 +8,6 @@ import { DEBUG } from "cc/env";
 namespace GlobalConfig {
 	/** 常量 */
 	export namespace Constant {
-		/** 游戏版本 */
-		export const versionStr = "1.0.0";
 		/** 显示左下角调试信息 */
 		export const isShowDebugInfo = false;
 	}
@@ -36,7 +34,6 @@ namespace GlobalConfig {
 			Config: any;
 			// eslint-disable-next-line @typescript-eslint/naming-convention
 			Framework: any;
-			Game: any;
 		}
 
 		/** bundle 键 */
@@ -84,23 +81,25 @@ namespace GlobalConfig {
 		 * 可用来排除生命周期阻塞位置，但如果节点 active 为 false 也将阻塞生命周期执行
 		 */
 		export const blockingWarningTimeMsNum = 0;
-		/** 默认遮罩 */
-		export const maskDataTab = {
-			nodeNameStr: "遮罩",
-			prefabPathStr: "db://assets/resources/Module/@Common/Mask/ResourcesCommonMask.prefab",
-		};
 
 		export const config = new (class {
 			/** 层间隔 */
 			layerSpacingNum = 100;
 			/** 渲染层级刷新间隔 */
 			layerRefreshIntervalMsNum = game.frameTime;
+			/** 遮罩配置 */
+			maskInfo = {
+				/** 遮罩节点名 */
+				nodeNameStr: "遮罩",
+				/** 遮罩颜色 */
+				color: { r: 0, g: 0, b: 0, a: 170 },
+			};
 			/** 窗口打开动画 */
 			windowAnimationTab: Readonly<{
 				/** 打开动画 */
-				open: Record<string, (value: Node) => void | Promise<void>>;
+				open: Record<string, (value: Node) => void>;
 				/** 关闭动画 */
-				close: Record<string, (value: Node) => void | Promise<void>>;
+				close: Record<string, (value: Node) => void>;
 			}> = {
 				open: {
 					无: null!,
