@@ -15,7 +15,7 @@ export class MainMain extends mk.StaticViewBase {
 	protected open(): void | Promise<void> {
 		// 进入 Game 场景
 		mk.bundle.loadScene("Game", {
-			bundleStr: GlobalConfig.Asset.bundle.Game,
+			bundleStr: "Game",
 			progressCallbackFunc: (currentNum, totalNum) => {
 				this._progressComp.progress = currentNum / totalNum;
 			},
