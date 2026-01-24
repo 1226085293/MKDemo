@@ -17,7 +17,6 @@ import { Label } from "cc";
 import { Layout } from "cc";
 import { Mask } from "cc";
 import { Node as Node_2 } from "cc";
-import { NodePool } from "cc";
 import { Prefab } from "cc";
 import { ProgressBar } from "cc";
 import { RichText } from "cc";
@@ -146,76 +145,11 @@ declare namespace mk {
 		}
 	}
 
-	/**
-	 * 音频管理器
-	 * @remarks
-	 *
-	 * - 音频分组，支持对不同类型的音频批量控制
-	 *
-	 * - 支持(动态/静态)音频
-	 *
-	 * - (通用/微信)版本
-	 *
-	 * - 增加对 playOnShot 接口的事件支持
-	 *
-	 * - 通用版本超出播放数量限制后停止当前音频而不是之前的
-	 */
-	export declare const audio: MKAudioBase;
+	export declare const audio: MKAudio;
 
 	export declare namespace Audio_ {
 		/** 音频状态 */
-		export enum State {
-			/** 停止 */
-			Stop = 1,
-			/** 暂停 */
-			Pause = 2,
-			/** 播放 */
-			Play = 4,
-		}
-		/** 安全音频单元 */
-		export interface Unit extends Release_.TypeReleaseObject {
-			/** 分组 */
-			readonly groupIdNumList: ReadonlyArray<number>;
-			/** 播放状态 */
-			readonly state: State;
-			/**
-			 * 等待播放次数
-			 * @remarks
-			 * 0-n：等待播放次数
-			 */
-			readonly waitPlayNum: number;
-			/** 总时长（秒） */
-			readonly totalTimeSNum: number;
-			/** 事件对象 */
-			readonly event: EventTarget_2<EventProtocol>;
-			/** 音频类型 */
-			readonly type: number;
-			/** 真实音量 */
-			readonly realVolumeNum: number;
-			/**
-			 * 音频组件
-			 * @remarks
-			 * 通用音频系统使用
-			 */
-			readonly audioSource: AudioSource | null;
-			/** 音频资源 */
-			clip: AudioClip | null;
-			/** 音量 */
-			volumeNum: number;
-			/** 循环 */
-			isLoop: boolean;
-			/** 当前时间（秒） */
-			currentTimeSNum: number;
-			/** 等待播放开关 */
-			isWaitPlay?: boolean;
-			/** 克隆 */
-			clone<T extends this>(): T;
-			/**
-			 * 克隆
-			 * @param valueNum_ 克隆数量
-			 */
-			clone<T extends this>(valueNum_: number): T[];
-		}
+		const State: typeof MKAudioUnit_.State;
 		/** add 配置 */
 		export interface AddConfig<T extends boolean> {
 			/** 类型 */
@@ -230,78 +164,18 @@ declare namespace mk {
 		/** play 配置 */
 		export interface PlayConfig {
 			/** 音量 */
-			volumeNum: number;
+			volumeNum?: number;
 			/** 循环 */
-			isLoop: boolean;
+			isLoop?: boolean;
+			/** 强制播放（防止超出最大播放数量时被阻止） */
+			isForce?: boolean;
 		}
-		/** 事件协议 */
-		export interface EventProtocol {
-			/** 初始化 */
-			init(): void;
-			/** 播放 */
-			play(): void;
-			/** 暂停 */
-			pause(): void;
-			/** 恢复 */
-			resume(): void;
-			/** 中止 */
-			stop(): void;
-			/** 结束 */
-			end(): void;
-		}
-		/* Excluded from this release type: PrivateUnit */
 		/** 音频组 */
-		export class Group {
-			constructor(init_: MKAudioBase, idNum_: number);
-			/** 分组 ID */
-			readonly idNum: number;
-			/** 音频列表 */
-			audioUnitList: ReadonlyArray<PrivateUnit>;
-			/** 播放状态 */
-			get isPlay(): boolean;
-			/** 停止状态 */
-			get isStop(): boolean;
-			/** 音量 */
-			get volumeNum(): number;
-			set volumeNum(valueNum_: number);
-			/** 音频管理器 */
-			private _audioManage;
-			/** 音量 */
-			private _volumeNum;
-			/** 播放状态 */
-			private _isPlay;
-			/** 停止状态 */
-			private _isStop;
-			/**
-			 * 播放
-			 * @param containsStateNum_ 包含状态，处于这些状态中的音频将被播放；
-			 * 默认值 `mk.Audio_.State.Pause | mk.Audio_.State.Stop`
-			 */
-			play(containsStateNum_?: number): void;
-			/** 暂停 */
-			pause(): void;
-			/**
-			 * 停止
-			 * @param isStop_
-			 * true: 停止当前并阻止后续音频播放；false: 恢复播放能力；默认值 true
-			 * @remarks
-			 * - 停止后续播放音频将不会执行播放逻辑
-			 */
-			stop(isStop_?: boolean): void;
-			/**
-			 * 添加音频
-			 * @param audio_ 音频单元或音频单元列表
-			 */
-			addAudio(audio_: Unit | Unit[]): void;
-			/**
-			 * 删除音频
-			 * @param audio_ 音频单元或音频单元列表
-			 */
-			delAudio(audio_: Unit | Unit[]): void;
-			/** 清理所有音频 */
-			clear(): Unit[];
-		}
-		const Unit: Omit<Unit, keyof Function> & (new (init_?: Partial<Unit>) => Omit<Unit, keyof Function>);
+		export class Group extends MKAudioGroup {}
+		/** 安全音频单元 */
+		export type Unit = MKAudioUnit_.MKAudioUnitSafe;
+		const Unit: Omit<MKAudioUnit_.MKAudioUnitSafe, keyof Function> &
+			(new (init_?: Partial<MKAudioUnit_.MKAudioUnitSafe> | undefined) => Omit<MKAudioUnit_.MKAudioUnitSafe, keyof Function>);
 	}
 
 	export declare const bundle: MKBundle;
@@ -319,7 +193,7 @@ declare namespace mk {
 			/** 版本 */
 			versionStr?: string;
 			/**
-			 * 资源路径
+			 * bundle 远程 URL
 			 * @defaultValue
 			 * this.bundleStr
 			 * @remarks
@@ -385,8 +259,6 @@ declare namespace mk {
 			abstract nameStr: string;
 			/** 管理器有效状态 */
 			isValid: boolean;
-			/** 节点池表 */
-			nodePoolTab: Record<string, NodePool>;
 			/** 事件对象 */
 			event?: EventTarget_2<any>;
 			/** 数据共享器 */
@@ -828,6 +700,15 @@ declare namespace mk {
 		protected static _config: {
 			layerSpacingNum: number;
 			layerRefreshIntervalMsNum: number;
+			maskInfo: {
+				nodeNameStr: string;
+				color: {
+					r: number;
+					g: number;
+					b: number;
+					a: number;
+				};
+			};
 			windowAnimationTab: Readonly<{
 				open: Record<string, (value: Node_2) => void>;
 				close: Record<string, (value: Node_2) => void>;
@@ -836,7 +717,7 @@ declare namespace mk {
 		/** 初始化编辑器 */
 		get initEditor(): void;
 		/** 层类型 */
-		layerTypeNum: number;
+		layerTypeNum: GlobalConfig.View.LayerType;
 		/** 层级 */
 		get childLayerNum(): number;
 		set childLayerNum(valueNum_: number);
@@ -890,8 +771,8 @@ declare namespace mk {
 		protected _isStatic: boolean;
 		/** onLoad 任务 */
 		protected _onLoadTask: MKStatusTask<void>;
-		/** create 任务 */
-		protected _createTask: MKStatusTask<void>;
+		/** start 任务 */
+		protected _startTask: MKStatusTask<void>;
 		/** open 任务 */
 		protected _openTask: MKStatusTask<void>;
 		/** 运行状态 */
@@ -911,7 +792,12 @@ declare namespace mk {
 		private _waitInitNum;
 		/** open 信息 */
 		private _openData;
+		/** 当前任务 */
+		private _currentTask;
+		/** create 任务 */
+		private _createTask;
 		protected onLoad(): void;
+		protected start(): void;
 		/**
 		 * 创建
 		 * @param config_ 创建配置
@@ -1094,7 +980,7 @@ declare namespace mk {
 		/** 日志 */
 		private _log;
 		/** 管理表 */
-		private _joinTimeMsN;
+		private _joinTimeMsMap;
 		/** 释放表 */
 		private _assetReleaseMap;
 		/** 释放定时器 */
@@ -1174,10 +1060,18 @@ declare namespace mk {
 	}
 
 	/**
-	 * 音频基类
-	 * @noInheritDoc
+	 * 音频管理器
+	 * @remarks
+	 *
+	 * - 音频分组，支持对不同类型的音频批量控制
+	 *
+	 * - 支持动态加载/编辑器挂载音频单元
+	 *
+	 * - 超出播放数量限制后停止当前音频而不是之前的
+	 *
+	 * - 支持音频播放间隔控制
 	 */
-	declare abstract class MKAudioBase {
+	declare class MKAudio {
 		constructor();
 		/**
 		 * 音频间隔限制表
@@ -1189,17 +1083,21 @@ declare namespace mk {
 		/** 音频组 */
 		get groupMap(): ReadonlyMap<number, Audio_.Group>;
 		/** 日志 */
-		protected abstract _log: Logger;
+		protected _log: Logger;
 		/** 音频组 */
 		protected _groupMap: Map<number, Audio_.Group>;
+		/** 音频常驻节点 */
+		private _audioNode;
+		/** 音频 uuid 索引表 */
+		private _audioUnitMap;
+		/** 当前播放数量 */
+		private _currentPlayNum;
+		/** AudioSource 对象池 */
+		private _audioSourcePool;
+		/** 倒计时集合 */
+		private _timerSet;
 		/** 音频播放时间戳表 */
 		private _audioPlayTimestampTab;
-		/** 暂停 */
-		abstract pause(audio_: Audio_.Unit): void;
-		/** 停止 */
-		abstract stop(audio_: Audio_.Unit): void;
-		/** 获取音频实例 */
-		protected abstract _getAudioUnit<T extends Audio_.PrivateUnit>(init_?: Partial<Audio_.PrivateUnit>): T;
 		/**
 		 * 获取音频组
 		 * @param groupNum_ 组类型
@@ -1218,14 +1116,27 @@ declare namespace mk {
 			config_?: Audio_.AddConfig<T2>
 		): Promise<T2 extends true ? (Audio_.Unit | null)[] : T extends string ? Audio_.Unit | null : (Audio_.Unit | null)[]>;
 		/**
-		 * 播放音效
+		 * 播放音频单元
 		 * @param audio_ 音频单元
 		 * @param config_ 播放配置
 		 * @returns 返回 null 则代表当前音频单元无效，
 		 * @remarks
-		 * 使用通用音频系统时，当播放数量超过 AudioSource.maxAudioChannel 时会导致播放失败
+		 * 当同时播放数量超过 AudioSource.maxAudioChannel 时根据 (config_?.isForce ?? GlobalConfig.Audio.isForce) 值决定是否播放
+		 * true: 播放当前音频并停止之前某个播放的音频; false: 阻止当前音频播放
 		 */
-		play(audio_: Audio_.Unit | string, config_?: Partial<Audio_.PlayConfig>): Promise<Audio_.Unit | null>;
+		play(audio_: Audio_.Unit | string, config_?: Audio_.PlayConfig): Promise<Audio_.Unit | null>;
+		/**
+		 * 暂停音频单元
+		 * @param audio_
+		 * @returns
+		 */
+		pause(audio_: Audio_.Unit): void;
+		/**
+		 * 停止音频单元
+		 * @param audio_
+		 * @returns
+		 */
+		stop(audio_: Audio_.Unit): void;
 		/**
 		 * 暂停所有音频
 		 * @remarks
@@ -1240,7 +1151,152 @@ declare namespace mk {
 		 */
 		stopAll(isPreventPlay_?: boolean): void;
 		/* Excluded from this release type: _add */
+		/** 获取音频实例 */
+		private _getAudioUnit;
+		private _play;
+		/** 构造 */
+		private _constructor;
+		/** 播放开始回调 */
+		private _nodeAudioStarted;
+		/** 播放结束回调 */
+		private _nodeAudioEnded;
 		protected _eventRestart(): void;
+	}
+
+	/** 音频组 */
+	declare class MKAudioGroup {
+		constructor(init_: MKAudio, idNum_: number);
+		/** 分组 ID */
+		readonly idNum: number;
+		/** 音频列表 */
+		audioUnitList: ReadonlyArray<MKAudioUnit_.MKAudioUnitSafe>;
+		/** 播放状态 */
+		get isPlay(): boolean;
+		/** 停止状态 */
+		get isStop(): boolean;
+		/** 音量 */
+		get volumeNum(): number;
+		set volumeNum(valueNum_: number);
+		/** 音频管理器 */
+		private _audioManage;
+		/** 音量 */
+		private _volumeNum;
+		/** 播放状态 */
+		private _isPlay;
+		/** 停止状态 */
+		private _isStop;
+		/**
+		 * 播放
+		 * @param containsStateNum_ 包含状态，处于这些状态中的音频将被播放；
+		 * 默认值 `mk.Audio_.MKAudioUnit_.State.Pause | mk.Audio_.MKAudioUnit_.State.Stop`
+		 */
+		play(containsStateNum_?: number): void;
+		/** 暂停 */
+		pause(): void;
+		/**
+		 * 停止
+		 * @param isStop_
+		 * true: 停止当前并阻止后续音频播放；false: 恢复播放能力；默认值 true
+		 * @remarks
+		 * - 停止后续播放音频将不会执行播放逻辑
+		 */
+		stop(isStop_?: boolean): void;
+		/**
+		 * 添加音频
+		 * @param audio_ 音频单元或音频单元列表
+		 */
+		addAudio(audio_: MKAudioUnit_.MKAudioUnitSafe | MKAudioUnit_.MKAudioUnitSafe[]): void;
+		/**
+		 * 删除音频
+		 * @param audio_ 音频单元或音频单元列表
+		 */
+		delAudio(audio_: MKAudioUnit_.MKAudioUnitSafe | MKAudioUnit_.MKAudioUnitSafe[]): void;
+		/** 清理所有音频 */
+		clear(): MKAudioUnit_.MKAudioUnitSafe[];
+	}
+
+	/* Excluded from this release type: MKAudioUnit */
+
+	declare namespace MKAudioUnit_ {
+		/** 音频状态 */
+		enum State {
+			/** 停止 */
+			Stop = 1,
+			/** 暂停 */
+			Pause = 2,
+			/** 播放 */
+			Play = 4,
+		}
+		/** 事件协议 */
+		interface EventProtocol {
+			/** 初始化 */
+			init(): void;
+			/** 播放 */
+			play(): void;
+			/** 暂停 */
+			pause(): void;
+			/** 恢复 */
+			resume(): void;
+			/** 中止 */
+			stop(): void;
+			/** 结束 */
+			end(): void;
+		}
+		/** 安全音频单元 */
+		interface MKAudioUnitSafe extends Release_.TypeReleaseObject {
+			/** 分组 */
+			readonly groupIdNumList: ReadonlyArray<number>;
+			/** 播放状态 */
+			readonly state: State;
+			/**
+			 * 等待播放次数
+			 * @remarks
+			 * 0-n：等待播放次数
+			 */
+			readonly waitPlayNum: number;
+			/** 总时长（秒） */
+			readonly totalTimeSNum: number;
+			/** 事件对象 */
+			readonly event: EventTarget_2<EventProtocol>;
+			/** 音频类型 */
+			readonly type: number;
+			/** 真实音量 */
+			readonly realVolumeNum: number;
+			/**
+			 * 音频组件
+			 * @remarks
+			 * 通用音频系统使用
+			 */
+			readonly audioSource: AudioSource | null;
+			/** 音频资源 */
+			clip: AudioClip | null;
+			/** 音量 */
+			volumeNum: number;
+			/** 循环 */
+			isLoop: boolean;
+			/** 当前时间（秒） */
+			currentTimeSNum: number;
+			/** 等待播放开关 */
+			isWaitPlay?: boolean;
+			/**
+			 * 停止优先级
+			 * @remarks
+			 * 当超过最大播放数量限制且强制播放时，会选择优先级最大的音频停止，优先级相同时选择最先播放的停止
+			 * @defaultValue
+			 * Music: 0; Effect: 1
+			 */
+			stopPriorityNum: number;
+			/** 克隆 */
+			clone<T extends this>(): T;
+			/**
+			 * 克隆
+			 * @param valueNum_ 克隆数量
+			 */
+			clone<T extends this>(valueNum_: number): T[];
+			/* Excluded from this release type: updateVolume */
+		}
+		const MKAudioUnitSafe: Omit<MKAudioUnitSafe, keyof Function> &
+			(new (init_?: Partial<MKAudioUnitSafe>) => Omit<MKAudioUnitSafe, keyof Function>);
 	}
 
 	/**
@@ -1290,6 +1346,8 @@ declare namespace mk {
 		private _preSceneStr;
 		/** 切换场景状态 */
 		private _isSwitchScene;
+		/** 已加载脚本缓存 */
+		private _loadedScriptCache;
 		/**
 		 * 设置 bundle 数据
 		 * @param bundleInfo_ bundle 信息
@@ -1388,7 +1446,7 @@ declare namespace mk {
 			 * @remarks
 			 * 可用于数据监听
 			 */
-			source: T;
+			readonly source: T;
 			/** 数据键 */
 			key: {
 				[k in keyof T]-?: k;
@@ -1402,8 +1460,9 @@ declare namespace mk {
 			request(key_: T2): Promise<T[T2]>;
 			/**
 			 * 重置数据
+			 * @param data_ 新数据来源，不存在则为 new T() 的值
 			 */
-			reset(): void;
+			reset(data_?: T): void;
 		}
 	}
 
@@ -1446,17 +1505,45 @@ declare namespace mk {
 		 */
 		restart(): Promise<void>;
 		/**
-		 * 暂停节点
-		 * @param node_ 目标节点
-		 * @param isRecursion_ 是否递归子节点
+		 * 暂停节点上的龙骨、spine、定时器、动画、缓动等，update 和 lateUpdate 可选暂停
+		 * @param target_ 目标节点或者场景
+		 * @param config_ 暂停配置
 		 */
-		pause(node_: Node_2, isRecursion_?: boolean): void;
+		pause(target_: Node_2 | Scene, config_?: _MKGame.PauseConfig): void;
 		/**
 		 * 恢复节点
-		 * @param node_ 目标节点
-		 * @param isRecursion_ 是否递归子节点
+		 * @param target_ 目标节点或者场景
+		 * @param config_ 恢复配置
 		 */
-		resume(node_: Node_2, isRecursion_?: boolean): void;
+		resume(target_: Node_2 | Scene, config_?: _MKGame.ResumeConfig): void;
+	}
+
+	declare namespace _MKGame {
+		/** 暂停数据 */
+		interface PauseData {
+			/** 龙骨速率 */
+			dragonBonesTimeScaleNum?: number;
+			/** spine 速率 */
+			spineTimeScaleNum?: number;
+			/** update 函数 */
+			updateMap?: Map<any, (Function | undefined)[]>;
+		}
+		/** 暂停配置 */
+		interface PauseConfig {
+			/** 是否递归执行 */
+			isRecursion?: boolean;
+			/** 排除列表 */
+			excludeList?: Node_2[];
+			/** 暂停 update */
+			isPauseUpdate?: boolean;
+		}
+		/** 恢复配置 */
+		interface ResumeConfig {
+			/** 是否递归执行 */
+			isRecursion?: boolean;
+			/** 排除列表 */
+			excludeList?: Node_2[];
+		}
 	}
 
 	/**
@@ -2223,22 +2310,18 @@ declare namespace mk {
 			private _network;
 			/** 日志 */
 			private _log;
-			on<T extends Constructor<GlobalConfig.Network.ProtoHead> | string | number, T2 extends (event_: T["prototype"]) => void>(
-				type_: T,
-				callback_: T2,
-				target_?: any,
-				isOnce_?: boolean
-			): typeof callback_ | null;
-			once<T extends Constructor<GlobalConfig.Network.ProtoHead> | string | number, T2 extends (event_: T["prototype"]) => void>(
-				type_: T,
-				callback_: T2,
-				this_?: any
-			): typeof callback_ | null;
-			off<T extends Constructor<GlobalConfig.Network.ProtoHead> | string | number, T2 extends (event_: T["prototype"]) => void>(
-				type_: T,
-				callback_?: T2,
-				this_?: any
-			): void;
+			on<
+				T extends Constructor<GlobalConfig.Network.ProtoHead> | string | number,
+				T2 extends (event_: T["prototype"] extends unknown ? any : T["prototype"]) => void,
+			>(type_: T, callback_: T2, target_?: any, isOnce_?: boolean): typeof callback_ | null;
+			once<
+				T extends Constructor<GlobalConfig.Network.ProtoHead> | string | number,
+				T2 extends (event_: T["prototype"] extends unknown ? any : T["prototype"]) => void,
+			>(type_: T, callback_: T2, this_?: any): typeof callback_ | null;
+			off<
+				T extends Constructor<GlobalConfig.Network.ProtoHead> | string | number,
+				T2 extends (event_: T["prototype"] extends unknown ? any : T["prototype"]) => void,
+			>(type_: T, callback_?: T2, this_?: any): void;
 			/**
 			 * 派发事件
 			 * @param data_ 消息数据
@@ -2269,11 +2352,10 @@ declare namespace mk {
 			 * 等待事件回调返回
 			 */
 			request<T extends Parameters<CT["encode"]>[0]>(data_: T, timeoutMsNum_?: number): Promise<any> | null;
-			has<T extends Constructor<GlobalConfig.Network.ProtoHead> | string | number, T2 extends (event_: T["prototype"]) => void>(
-				type_: T,
-				callback_?: T2,
-				target_?: any
-			): boolean;
+			has<
+				T extends Constructor<GlobalConfig.Network.ProtoHead> | string | number,
+				T2 extends (event_: T["prototype"] extends unknown ? any : T["prototype"]) => void,
+			>(type_: T, callback_?: T2, target_?: any): boolean;
 			clear(): void;
 		}
 		{
@@ -2770,6 +2852,12 @@ declare namespace mk {
 		protected _view: _MVCControlBase.TypeView<CT2>;
 		private _openTask;
 		private _closeTask;
+		/**
+		 * 创建当前类型实例
+		 * @remarks
+		 * 与 `new control()` 不同的是可以使用 `await control.new()` 等待 open 执行完成
+		 */
+		static new<T extends new (...argsList: any[]) => any>(this: T, ...argsList_: ConstructorParameters<T>): Promise<InstanceType<T>>;
 		/** 关闭回调
 		 * @remarks
 		 * 不使用此模块时手动调用，会顺序关闭 Model, View
