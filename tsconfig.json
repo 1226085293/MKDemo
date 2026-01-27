@@ -11,7 +11,8 @@
 				"./extensions/MKFramework/assets/MKFramework/Config/GlobalEvent.ts"
 			],
 			"db://assets/*": ["./assets/*"]
-		}
+		},
+		"allowSyntheticDefaultImports": true
 	},
 	"types": ["./extensions/MKFramework/@types/MKFramework/"]
 }

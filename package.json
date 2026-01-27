@@ -1,8 +1,17 @@
 {
-	"name": "MKDemo",
+	"name": "mkdemo",
 	"uuid": "06c28f4b-8e42-430d-b149-73095eca5e76",
 	"creator": { "version": "3.8.8" },
 	"mk-framework": { "versionStr": "v1.0.8" },
+	"dependencies": {
+		"@stdlib/math-base-special-asin": "^0.2.3",
+		"@stdlib/math-base-special-atan2": "^0.3.0",
+		"@stdlib/math-base-special-cos": "^0.3.0",
+		"@stdlib/math-base-special-exp": "^0.2.4",
+		"@stdlib/math-base-special-pow": "^0.3.0",
+		"@stdlib/math-base-special-sin": "^0.3.0",
+		"@stdlib/math-base-special-sqrt": "^0.2.2"
+	},
 	"devDependencies": {
 		"@typescript-eslint/eslint-plugin": "^5.34.0",
 		"@typescript-eslint/parser": "^5.34.0",

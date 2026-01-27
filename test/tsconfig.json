@@ -1,0 +1,11 @@
+{
+  "include": ["../assets/Game/Bundle/GameMessages.ts"],
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "CommonJS",
+    "outDir": "dist",
+    "rootDir": "..",
+    "esModuleInterop": true,
+    "strict": false
+  }
+}

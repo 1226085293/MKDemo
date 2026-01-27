@@ -23,7 +23,7 @@
     "_active": true,
     "_components": [],
     "_prefab": {
-      "__id__": 30
+      "__id__": 31
     },
     "_lpos": {
       "__type__": "cc.Vec3",
@@ -54,7 +54,7 @@
     },
     "autoReleaseAssets": false,
     "_globals": {
-      "__id__": 31
+      "__id__": 32
     },
     "_id": "d9931fc3-486a-4428-85b7-5827a6f0c789"
   },
@@ -84,6 +84,9 @@
       },
       {
         "__id__": 29
+      },
+      {
+        "__id__": 30
       }
     ],
     "_prefab": null,
@@ -175,7 +178,7 @@
     "_priority": 0,
     "_fov": 45,
     "_fovAxis": 0,
-    "_orthoHeight": 905.171339563863,
+    "_orthoHeight": 437.89473684210526,
     "_near": 0,
     "_far": 1000,
     "_color": {
@@ -788,7 +791,7 @@
     "__prefab": null,
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 1080,
+      "width": 0,
       "height": 15
     },
     "_anchorPoint": {
@@ -943,7 +946,7 @@
     },
     "_mode": 0,
     "_totalLength": 1080,
-    "_progress": 1,
+    "_progress": 0,
     "_reverse": false,
     "_id": "1e/zZV5IZJq5T6LXXMlYtN"
   },
@@ -1107,6 +1110,23 @@
     "_id": "12O/ljcVlEqLmVm3U2gEOQ"
   },
   {
+    "__type__": "14c45nv+xNEj5FNw/UlX2gj",
+    "_name": "",
+    "_objFlags": 0,
+    "__editorExtras__": {},
+    "node": {
+      "__id__": 2
+    },
+    "_enabled": true,
+    "__prefab": null,
+    "layerTypeNum": 0,
+    "_childLayerNum": 0,
+    "progressComp": {
+      "__id__": 22
+    },
+    "_id": "c9J0YBUA9DnIwrOkiA87t/"
+  },
+  {
     "__type__": "cc.Widget",
     "_name": "",
     "_objFlags": 0,
@@ -1147,28 +1167,28 @@
   {
     "__type__": "cc.SceneGlobals",
     "ambient": {
-      "__id__": 32
-    },
-    "shadows": {
       "__id__": 33
     },
-    "_skybox": {
+    "shadows": {
       "__id__": 34
     },
-    "fog": {
+    "_skybox": {
       "__id__": 35
     },
-    "octree": {
+    "fog": {
       "__id__": 36
     },
-    "skin": {
+    "octree": {
       "__id__": 37
     },
-    "lightProbeInfo": {
+    "skin": {
       "__id__": 38
     },
-    "postSettings": {
+    "lightProbeInfo": {
       "__id__": 39
+    },
+    "postSettings": {
+      "__id__": 40
     },
     "bakedWithStationaryMainLight": false,
     "bakedWithHighpLightmap": false

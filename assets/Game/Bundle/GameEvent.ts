@@ -1,4 +1,4 @@
 export interface GameEvent {
-	/** 生成星星 */
-	generateStar(): void;
+	/** 初始化游戏 */
+	initGame(): void;
 }
